@@ -1,0 +1,16 @@
+# the API with a CPU limit of 200 millicores (a fifth of one core)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: burn
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi

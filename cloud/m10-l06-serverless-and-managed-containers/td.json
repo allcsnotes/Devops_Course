@@ -1,0 +1,1 @@
+{"family":"allcs-web","networkMode":"bridge","requiresCompatibilities":["EC2"],"containerDefinitions":[{"name":"web","image":"public.ecr.aws/nginx/nginx:1.29-alpine","memory":128,"cpu":128,"essential":true,"portMappings":[{"containerPort":80,"hostPort":0}]}]}

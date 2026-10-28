@@ -1,0 +1,90 @@
+name: terraform
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: terraform-${{ github.ref }}
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive -diff
+
+  plan:
+    needs: fmt
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      matrix:
+        env: [staging, prod]
+    defaults:
+      run:
+        working-directory: envs/${{ matrix.env }}
+    env:
+      PG_CONN_STR: ${{ secrets.TF_STATE_PLAN }} # read-only role
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - run: terraform init -no-color
+      - run: terraform validate -no-color
+      - run: terraform plan -no-color -out=tfplan | tee plan.txt
+      - name: Post the plan on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL: ${{ github.server_url }}/api/v1/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments
+        run: |
+          { echo "### terraform plan: ${{ matrix.env }}"; echo '```'
+            sed -n '/Terraform will perform\|No changes/,$p' plan.txt | head -c 60000; echo '```'; } > comment.md
+          jq -n --rawfile b comment.md '{body: $b}' |
+            curl -sf -X POST -H "Authorization: token $TOKEN" -H "Content-Type: application/json" "$URL" -d @- > /dev/null
+      - name: Keep the saved plan
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ matrix.env }}
+          path: envs/${{ matrix.env }}/tfplan
+
+  apply-staging:
+    if: github.event_name == 'push'
+    needs: plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/staging
+    env:
+      PG_CONN_STR: ${{ secrets.TF_STATE_STAGING }} # writes staging state only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-staging
+          path: envs/staging
+      - run: terraform init -no-color
+      - run: terraform apply -no-color tfplan

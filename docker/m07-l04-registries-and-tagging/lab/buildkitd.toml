@@ -1,0 +1,3 @@
+# BuildKit daemon config for the lab builder: the local registry speaks plain HTTP
+[registry."localhost:5001"]
+  http = true

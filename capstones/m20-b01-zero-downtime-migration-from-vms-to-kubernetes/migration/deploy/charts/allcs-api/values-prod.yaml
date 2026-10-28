@@ -1,0 +1,4 @@
+# production (the allcsvideos migration): three pods, half a CPU each, like each VM
+replicas: 3
+session:
+  existingSecret: allcs-api-session   # same key as the VMs (created from the Ansible vault)

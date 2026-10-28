@@ -1,0 +1,9 @@
+#!/bin/bash
+# score: time to diagnose (symptom -> cause) and time to fix (cause -> fixed), per scenario, from ~/incident/notes.log
+awk '
+function sec(t){ split(t, a, ":"); return a[1]*3600 + a[2]*60 + a[3] }
+{ id=$2; sub(":", "", $3); k=$3; T[id, k]=sec($1); if (!(id in seen)) { seen[id]=1; order[++n]=id } }
+END { printf "%-4s %10s %10s\n", "", "diagnose", "fix"
+      for (i=1; i<=n; i++) { s=order[i]; d=T[s,"cause"]-T[s,"symptom"]; f=T[s,"fixed"]-T[s,"cause"]
+        printf "%-4s %8ds %9ds\n", s, d, f; td+=d; tf+=f }
+      printf "%-4s %8ds %9ds\n", "all", td, tf }' ~/incident/notes.log

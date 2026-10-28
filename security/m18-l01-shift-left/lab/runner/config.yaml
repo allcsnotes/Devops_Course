@@ -1,0 +1,17 @@
+# Gitea runner (gitea/runner:5.1.1) config for the M18-L01 lab (copied from the Module 8 lab; full option list:
+# gitea-runner config generate). Only the options we change.
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 3
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: true                # the runner's built-in cache server (actions/cache talks to it)
+  dir: /data/cache             # cache blobs live in the runner's data volume
+  port: 8088
+container:
+  network: shiftleft-net       # jobs reach http://gitea:3000 
+  options: --label course=devops --label lab=shiftleft
+  docker_host: "-"             # the runner never hands the Mac's Docker socket to a job

@@ -1,0 +1,34 @@
+# allcsvideos: the local stack in one file
+name: compose-lab
+
+x-labels: &labels       # our course label, reused below
+  course: devops
+
+services:
+  db:
+    image: postgres:18.6-alpine3.24
+    environment:
+      POSTGRES_USER: allcsvideos
+      POSTGRES_DB: allcsvideos
+      POSTGRES_PASSWORD: demo-password-123    # FAKE, local only
+    volumes:
+      - pgdata:/var/lib/postgresql
+    labels: *labels
+
+  redis:
+    image: redis:8.10.2-alpine3.23
+    labels: *labels
+
+  api:
+    build: ./api
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    depends_on:
+      - db
+      - redis
+    labels: *labels
+
+volumes:
+  pgdata:
+    labels: *labels

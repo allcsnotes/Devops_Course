@@ -1,0 +1,60 @@
+# Jenkins Configuration as Code (JCasC): the whole controller set-up in one file, applied at every start.
+jenkins:
+  systemMessage: "allcsvideos lab Jenkins (lab only: fake admin password)"
+  numExecutors: 0                 # the controller runs no builds; agents do
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: "${ADMIN_PASSWORD}"     # FAKE lab-only password, from the container environment
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  nodes:
+    - permanent:
+        name: linux-1
+        labelString: "linux docker"
+        numExecutors: 2
+        remoteFS: /home/jenkins/agent
+        launcher:
+          inbound:
+            webSocket: true
+unclassified:
+  location:
+    url: http://jenkins:8080/
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: ci-db
+              description: "Throwaway CI database (FAKE password)"
+              username: allcsvideos
+              password: demo-password-123
+          - usernamePassword:
+              scope: GLOBAL
+              id: registry
+              description: "ci-bot push token for the lab registry"
+              username: ci-bot
+              password: "${REGISTRY_TOKEN}"   # read from /run/secrets/REGISTRY_TOKEN, never printed
+jobs:
+  - script: |
+      multibranchPipelineJob('course-copilot') {
+        displayName('course-copilot')
+        branchSources {
+          branchSource {
+            source {
+              git {
+                id('platform')
+                remote('http://gitea:3000/allcsvideos/platform.git')
+                credentialsId('')
+                traits { gitBranchDiscovery() }
+              }
+            }
+          }
+        }
+        factory { workflowBranchProjectFactory { scriptPath('Jenkinsfile') } }
+        orphanedItemStrategy { discardOldItems { numToKeep(5) } }
+      }

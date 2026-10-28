@@ -1,0 +1,22 @@
+# STAGED LEAK (M08-L05): a hard-coded AWS key plus set -x. The key is FAKE, made up for this lesson.
+# Push it once to see the problem, then replace it with ../.github/workflows/thumbnails.yml.
+name: thumbnails
+on:
+  push:
+    branches: [main]
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    env:
+      # FAKE demo key, staged for this lesson (never a real key)
+      AWS_ACCESS_KEY_ID: AKIA2DEMOFAKEKEY0001
+      AWS_SECRET_ACCESS_KEY: fakeDEMOsecretKEYnotREAL0000demo0000000a
+      AWS_DEFAULT_REGION: ap-south-1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        run: |
+          set -x
+          mkdir -p ~/.aws
+          printf '[default]\naws_access_key_id = %s\naws_secret_access_key = %s\n' \
+            "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" > ~/.aws/credentials

@@ -1,0 +1,15 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-limits
+spec:
+  validationActions: [Audit]
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: [v1]
+      operations: [CREATE, UPDATE]
+      resources: [pods]
+  validations:
+  - expression: "object.spec.containers.all(c, has(c.resources.limits) && 'memory' in c.resources.limits && 'cpu' in c.resources.limits)"
+    message: "every container needs CPU and memory limits"

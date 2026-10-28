@@ -1,0 +1,26 @@
+# api: may look up names (DNS, port 53 to CoreDNS) and reach the database on 5432. Nothing else goes out.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-egress
+  namespace: api
+spec:
+  podSelector:
+    matchLabels: {app: api}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels: {kubernetes.io/metadata.name: kube-system}
+      podSelector:
+        matchLabels: {k8s-app: kube-dns}
+    ports:
+    - {protocol: UDP, port: 53}
+    - {protocol: TCP, port: 53}
+  - to:
+    - namespaceSelector:
+        matchLabels: {kubernetes.io/metadata.name: data}
+      podSelector:
+        matchLabels: {app: db}
+    ports:
+    - {protocol: TCP, port: 5432}

@@ -1,0 +1,13 @@
+replicas: 1
+image:
+  repository: ghcr.io/stefanprodan/podinfo
+  tag: "6.14.1"
+message: "allcsvideos storefront"
+extraArgs: []
+resources:
+  requests: { cpu: 25m, memory: 32Mi }
+  limits: { cpu: 100m, memory: 128Mi }
+canary:
+  steps:
+    - setWeight: 50
+    - pause: {}

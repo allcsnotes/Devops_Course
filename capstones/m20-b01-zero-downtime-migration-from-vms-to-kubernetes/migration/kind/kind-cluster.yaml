@@ -1,0 +1,27 @@
+# kind-cluster.yaml (M20-B01): ONE node (the laptop is shared with parallel labs and renders). No host port mappings:
+# the edge load balancer reaches the node on the lab network (10.0.201.60), port 30080.
+# Node image v1.36.4: Argo CD 3.5 is tested on Kubernetes 1.33-1.36. Longer leader-election timings and kubeadm
+# timeouts (from M14-L06 / M15-L03) keep the control plane stable under host load.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  kind: InitConfiguration
+  timeouts:
+    controlPlaneComponentHealthCheck: 10m0s
+    kubeletHealthCheck: 10m0s
+    kubernetesAPICall: 5m0s
+- |
+  kind: ClusterConfiguration
+  controllerManager:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane

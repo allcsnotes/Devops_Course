@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# hc: health checks for one server, with an alert when the state changes.
+# exit codes: 0 OK, 1 WARN, 2 CRIT, 3 UNKNOWN (usage or config error)
+set -euo pipefail
+
+readonly VERSION=1.3.0
+lib=$(dirname "$(readlink -f "$0")")/../lib
+conf=/etc/hc/hc.conf
+state_dir=${STATE_DIRECTORY:-/var/lib/hc}
+log_dir=${LOGS_DIRECTORY:-/var/log/hc}
+dry_run=0
+json=0
+quiet=0
+
+usage() {
+  cat <<'HELP'
+usage: hc [-c FILE] [-n] [--json] [-h] [--version]
+  -c FILE        config file (default /etc/hc/hc.conf)
+  -n, --dry-run  run the checks, but write nothing and send nothing
+  --json         print the results as JSON
+  -q, --quiet    print nothing, only set the exit code
+exit codes: 0 OK, 1 WARN, 2 CRIT, 3 UNKNOWN
+HELP
+}
+
+die() { echo "hc: $1" >&2; exit 3; }
+
+while (( $# )); do
+  case $1 in
+    -c) (( $# > 1 )) || die "-c needs a file"; conf=$2; shift ;;
+    -n|--dry-run) dry_run=1 ;;
+    --json) json=1 ;;
+    -q|--quiet) quiet=1 ;;
+    -h|--help) usage; exit 0 ;;
+    --version) echo "hc $VERSION"; exit 0 ;;
+    *) die "unknown option $1 (try -h)" ;;
+  esac
+  shift
+done
+
+# shellcheck source-path=SCRIPTDIR source=../lib/checks.sh
+source "$lib/checks.sh"
+load_conf "$conf"
+
+if (( ! dry_run )); then
+  (( EUID != 0 )) || die "not as root: use systemctl start hc, or --dry-run"
+  exec 9> "$state_dir/lock"
+  flock -n 9 || die "another hc run is still going"
+fi
+
+results=$(run_checks "$lib")
+status=$(worst "$results")
+declare -A code=([OK]=0 [WARN]=1 [CRIT]=2)
+
+if (( quiet )); then
+  :
+elif (( json )); then
+  python3 "$lib/report.py" json "$status" <<< "$results"
+else
+  while IFS=$'\t' read -r sev check detail; do
+    printf '%-4s  %-24s %s\n' "$sev" "$check" "$detail"
+  done <<< "$results"
+fi
+
+# one structured line per run: easy to grep, easy to ship elsewhere
+problems=$(awk -F'\t' '$1 != "OK" {print $2, $3}' <<< "$results" |
+           paste -sd ';')
+line="$(date -Is) host=$(hostname) status=$status problems=\"$problems\""
+previous=$(cat "$state_dir/state" 2>/dev/null || echo OK)
+
+if (( dry_run )); then
+  echo "dry run: would log: $line" >&2
+  if [[ $status != "$previous" ]]; then
+    echo "dry run: would alert $previous -> $status" >&2
+  fi
+  exit "${code[$status]}"
+fi
+
+send_alert() {
+  if [[ $NOTIFY_V2 == on ]]; then   # unfinished: per-severity webhooks
+    echo "hc: NOTIFY_V2 is not ready yet" >&2; return 1
+  fi
+  python3 "$lib/report.py" alert "$WEBHOOK_URL" "$1" "$2" <<< "$results"
+}
+
+echo "$line" >> "$log_dir/hc.log"
+if [[ $status != "$previous" ]]; then   # alert on a change, not every run
+  if send_alert "$previous" "$status"; then
+    echo "$status" > "$state_dir/state"
+  else
+    echo "hc: alert not sent, will retry on the next run" >&2
+  fi
+fi
+exit "${code[$status]}"

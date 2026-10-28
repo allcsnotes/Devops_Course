@@ -1,0 +1,77 @@
+# Stage 5 (M08-L02): lint -> test -> build -> release. needs orders the jobs, outputs pass data down the chain,
+# if runs release only for a v* tag. Also: env at three levels, contexts, GITHUB_OUTPUT and GITHUB_ENV.
+name: ci
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "hc/**"
+      - ".github/**"
+  pull_request:
+    paths:
+      - "hc/**"
+      - ".github/**"
+env:
+  STAGE: workflow   # demo: one name at three levels
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Syntax-check the scripts
+        run: |
+          for f in hc/bin/hc hc/*.sh hc/lib/*.sh hc/tests/*.sh; do
+            bash -n "$f"
+          done
+          python -m py_compile hc/lib/*.py
+          echo "lint ok, $(python --version)"
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the hc tests
+        run: bash hc/tests/run.sh
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      STAGE: job
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Where am I
+        run: |
+          echo "commit: ${{ github.sha }}"
+          echo "ref:    ${{ github.ref_name }}"
+          echo "runner: ${{ runner.os }}"
+      - name: Env levels
+        env:
+          STAGE: step
+        run: echo "STAGE=$STAGE"
+      - name: Read the version
+        id: ver
+        working-directory: hc
+        run: |
+          v=$(bash bin/hc --version | cut -d' ' -f2)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Name the package
+        run: |
+          v=${{ steps.ver.outputs.version }}
+          echo "PKG=hc-$v-${GITHUB_SHA::7}.tar.gz" >> "$GITHUB_ENV"
+      - name: Package
+        run: tar czf "$PKG" hc && ls -l "$PKG"
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release (a stand-in for now)
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: echo "release hc $VERSION from tag ${{ github.ref_name }}"

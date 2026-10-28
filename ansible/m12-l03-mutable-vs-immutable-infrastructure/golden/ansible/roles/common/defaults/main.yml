@@ -1,0 +1,8 @@
+---
+# defaults: the knobs. Lowest precedence, so group_vars and host_vars can override them.
+common_packages: [curl, tree, logrotate]
+common_users: []
+# who may log in over SSH: the admin plus every user in common_users
+ssh_allow_users: "{{ ['asha'] + common_users | map(attribute='name') | list }}"
+# true while Packer bakes an image: nothing is started, there is no systemd yet
+image_build: false

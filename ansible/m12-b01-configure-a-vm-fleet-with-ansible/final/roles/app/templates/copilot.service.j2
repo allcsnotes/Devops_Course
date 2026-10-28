@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Course Copilot (allcsvideos)
+After=network-online.target
+
+[Service]
+User=copilot
+Group=copilot
+WorkingDirectory={{ copilot_home }}/current
+EnvironmentFile=/etc/copilot/copilot.env
+ExecStart={{ copilot_home }}/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port {{ copilot_port }}
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

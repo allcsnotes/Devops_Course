@@ -1,0 +1,4 @@
+zone "allcsvideos.test" {
+    type primary;
+    file "/etc/bind/zones/db.allcsvideos.test";
+};

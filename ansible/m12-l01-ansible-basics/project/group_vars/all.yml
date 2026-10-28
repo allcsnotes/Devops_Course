@@ -1,0 +1,4 @@
+# variables for every host in the inventory
+ansible_user: asha
+# use the target's python3 on purpose, not whatever discovery finds
+ansible_python_interpreter: /usr/bin/python3

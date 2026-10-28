@@ -1,0 +1,2 @@
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM "{{name}}";
+DROP ROLE IF EXISTS "{{name}}";

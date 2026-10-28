@@ -1,0 +1,18 @@
+# staged mistake: the same API with no resource requests
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-noreq
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-noreq
+  template:
+    metadata:
+      labels:
+        app: api-noreq
+    spec:
+      containers:
+      - name: api
+        image: scale-api:1.0

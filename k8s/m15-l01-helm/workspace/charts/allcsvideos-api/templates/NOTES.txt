@@ -1,0 +1,6 @@
+{{ .Chart.Name }} {{ .Values.image.tag | default .Chart.AppVersion }} is release "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
+{{- if .Values.ingress.enabled }}
+Try it: curl http://{{ .Values.ingress.host }}/api/courses
+{{- else }}
+Try it: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "api.fullname" . }} 8080:80
+{{- end }}

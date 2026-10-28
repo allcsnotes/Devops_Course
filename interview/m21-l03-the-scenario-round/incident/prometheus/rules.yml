@@ -1,0 +1,23 @@
+# SLO (lesson 1): 99.5% of catalog API requests succeed over 30 days -> error budget 0.5%.
+# Fast-burn page: burning budget 14.4x faster than allowed, on a long AND a short window.
+# Production windows are 1h and 5m; the lab shortens them to 5m and 1m so a demo takes minutes.
+groups:
+  - name: catalog-slo
+    rules:
+      - record: service:http_errors:ratio_rate1m
+        expr: sum by (service) (rate(http_requests_total{status=~"5.."}[1m])) / sum by (service) (rate(http_requests_total[1m]))
+      - record: service:http_errors:ratio_rate5m
+        expr: sum by (service) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(http_requests_total[5m]))
+      - alert: CatalogErrorBudgetBurn
+        expr: service:http_errors:ratio_rate5m > (14.4 * 0.005) and service:http_errors:ratio_rate1m > (14.4 * 0.005)
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $labels.service }}: {{ $value | humanizePercentage }} of requests failing (SLO 99.5%)"
+          runbook: "runbooks/catalog-api.md"
+      - alert: CatalogLatencyHigh
+        expr: histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 2m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $labels.service }}: p95 latency {{ $value | humanizeDuration }}"

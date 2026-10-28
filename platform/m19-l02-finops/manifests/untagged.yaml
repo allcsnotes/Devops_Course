@@ -1,0 +1,17 @@
+# staged: a quick experiment someone deploys into dev, with no cost labels
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: experiment, namespace: allcs-dev}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: experiment}
+  template:
+    metadata:
+      labels: {app: experiment}
+    spec:
+      containers:
+      - name: experiment
+        image: allcsvideos-api:1.0
+        resources:
+          requests: {cpu: 500m, memory: 384Mi}

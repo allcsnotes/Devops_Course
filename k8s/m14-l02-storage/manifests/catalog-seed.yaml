@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-seed
+data:
+  seed.sql: |
+    CREATE TABLE courses (id serial PRIMARY KEY, title text NOT NULL);
+    INSERT INTO courses (title) VALUES ('DSA'), ('System Design'), ('DevOps');

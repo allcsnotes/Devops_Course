@@ -1,0 +1,14 @@
+# The allcsvideos software catalog: one Location that points at the descriptor files kept next to the code.
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: allcsvideos-platform
+  description: Everything in the allcsvideos-platform repository
+spec:
+  targets:
+    - ./catalog/org.yaml
+    - ./catalog/system.yaml
+    - ./storefront/catalog-info.yaml
+    - ./api/gateway/catalog-info.yaml
+    - ./api/catalog-service/catalog-info.yaml
+    - ./copilot/catalog-info.yaml

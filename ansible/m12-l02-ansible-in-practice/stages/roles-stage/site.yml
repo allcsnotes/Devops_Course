@@ -1,0 +1,19 @@
+---
+# site.yml: the whole allcsvideos fleet. Each play maps a group to roles.
+- name: Base setup for every server
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: common
+    - role: hc_toolkit
+      tags: hc
+
+- name: Web servers
+  hosts: web
+  become: true
+  roles:
+    - role: nginx
+      tags: nginx
+    - role: app_config
+      tags: app

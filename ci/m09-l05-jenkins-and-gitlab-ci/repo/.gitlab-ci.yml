@@ -1,0 +1,122 @@
+# Course Copilot pipeline for GitLab CI: the same jobs as .gitea/workflows/copilot.yml and the Jenkinsfile
+stages: [lint, test, integration, image]
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_ROOT_USER_ACTION: ignore
+  IMAGE: "$CI_REGISTRY_IMAGE/course-copilot"
+
+default:
+  image: python:3.13.16-slim
+  before_script:
+    - cd copilot
+    - pip install -q -r requirements.txt -r requirements-dev.txt
+  cache:
+    key:
+      files: [copilot/requirements.txt, copilot/requirements-dev.txt]
+    paths: [.cache/pip]
+
+hadolint:
+  stage: lint
+  image: hadolint/hadolint:v2.15.1-debian
+  before_script: []
+  cache: []
+  needs: []
+  script:
+    - hadolint copilot/Dockerfile
+
+lint:
+  stage: lint
+  needs: []
+  script:
+    - ruff check .
+    - ruff format --check .
+    - mypy app
+
+unit:
+  stage: test
+  image: python:${PY}-slim
+  needs: [lint]
+  parallel:
+    matrix:
+      - PY: ["3.12.15", "3.13.16"]
+  script:
+    - pytest -m "not integration" --junitxml=reports/junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: copilot/reports/junit.xml
+
+integration:
+  stage: integration
+  needs: [unit]
+  services:
+    - name: postgres:18.6-alpine3.24
+      alias: postgres
+    - name: redis:8.10.2-alpine3.23
+      alias: redis
+  variables:
+    POSTGRES_USER: allcsvideos
+    POSTGRES_PASSWORD: demo-password-123   # FAKE: a throwaway CI database
+    POSTGRES_DB: allcsvideos
+    DATABASE_URL: postgresql://allcsvideos:demo-password-123@postgres:5432/allcsvideos
+    REDIS_URL: redis://redis:6379/0
+  script:
+    - python db/apply.py db/migrations/001_courses.sql
+    - pytest -m integration -v
+
+build:
+  stage: image
+  image: docker:29.5.3
+  services:
+    - name: docker:29.5.3-dind
+      alias: docker
+      command: ["--insecure-registry=gitea:3000"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script: []
+  cache: []
+  needs: [hadolint, integration]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - docker build -q -t "$IMAGE:sha-$CI_COMMIT_SHORT_SHA" copilot
+    - docker save -o copilot.tar "$IMAGE:sha-$CI_COMMIT_SHORT_SHA"
+  artifacts:
+    paths: [copilot.tar]
+    expire_in: 1 hour
+
+scan:
+  stage: image
+  image:
+    name: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+    entrypoint: [""]
+  before_script: []
+  cache: []
+  needs: [build]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - trivy image -q --input copilot.tar --scanners vuln --exit-code 1 --severity CRITICAL
+
+push:
+  stage: image
+  image: docker:29.5.3
+  services:
+    - name: docker:29.5.3-dind
+      alias: docker
+      command: ["--insecure-registry=gitea:3000"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script: []
+  cache: []
+  needs: [build, scan]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - docker load -q -i copilot.tar
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+    - docker push -q "$IMAGE:sha-$CI_COMMIT_SHORT_SHA"

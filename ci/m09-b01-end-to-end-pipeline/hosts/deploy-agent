@@ -1,0 +1,134 @@
+#!/bin/bash
+# /usr/local/bin/deploy-agent : the ONLY thing the pipeline's SSH key may run on this host (authorized_keys forces it).
+# Blue-green for the allcsvideos release (storefront + Course Copilot). The pipeline asks for one of these:
+#   deploy <copilot-digest> <storefront-digest> <run>   start the release on the IDLE colour, check it, switch, watch
+#                                                       (the app settings for this environment arrive on stdin)
+#   rollback <run>                                      back to the release before the live one (stdin: app settings)
+#   smoke <run> passed|failed                           record the pipeline's smoke-test result for that run
+#   status                                              print the deployment record
+# Anything else is refused.
+set -euo pipefail
+source /etc/deploy-agent.conf             # REG=ghcr.io/<owner> (written at start-up from IMAGE_REGISTRY)
+APP=/srv/app LB=/srv/lb REC=/srv/deploys/versions.json
+source $APP/host.env                       # APP_ENV, WATCH_SECONDS (per host, not from the pipeline)
+declare -A IP=([blue]=10.10.1.11 [green]=10.10.1.21)
+WINDOW=5 MAX_FAIL_PCT=5 MIN_REQ=10           # post-switch watch: >5% of the last 5 s failed (at least 10 requests)
+read -r cmd a1 a2 a3 extra <<< "${SSH_ORIGINAL_COMMAND:-}"
+[[ -z ${extra:-} ]] || { echo "refused: too many arguments" >&2; exit 2; }
+log(){ echo "$(date +%T)  $*"; }
+now(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+ms(){ date +%s%3N; }
+other(){ [[ $1 == blue ]] && echo green || echo blue; }
+[[ -f $REC ]] || jq -n --arg e "$APP_ENV" '{environment: $e, live: null, standby: null, history: []}' > $REC
+rec(){ jq "$@" $REC > $REC.tmp && mv $REC.tmp $REC; }
+is_digest(){ [[ $1 =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "refused: not an image digest: $1" >&2; exit 2; }; }
+is_run(){ [[ $1 =~ ^[a-z0-9-]{1,40}$ ]] || { echo "refused: bad run label" >&2; exit 2; }; }
+
+settings(){   # stdin -> app.<colour>.env : only KEY=value lines (comments and blank lines dropped)
+  local f=$APP/app.$1.env; : > $f.tmp
+  while IFS= read -r line || [[ -n $line ]]; do
+    [[ -z $line || $line == \#* ]] && continue
+    [[ $line =~ ^[A-Z][A-Z0-9_]*=[^\`\$]*$ ]] || { echo "refused: bad settings line" >&2; rm -f $f.tmp; exit 2; }
+    echo "$line" >> $f.tmp
+  done; mv $f.tmp $f; }
+
+lb_route(){   # point the load balancer at one colour: check the config, then a graceful reload
+  printf 'map $host $pool {\n    default %s;\n}\n' "$1" > $LB/conf.d/route.conf
+  docker exec lb nginx -t -q && docker exec lb nginx -s reload; }
+
+checks(){     # checks <colour> <copilot-digest> <storefront-digest>: straight to that colour, before users see it
+  local u=http://${IP[$1]}:8080 v
+  curl -sf -o /dev/null --max-time 3 $u/healthz && log "  check storefront /healthz: 200" || { log "  check storefront /healthz: FAILED"; return 1; }
+  v=$(curl -sf --max-time 3 $u/version) || { log "  check /version: FAILED"; return 1; }
+  jq -e --arg c "$2" --arg s "$3" --arg e "$APP_ENV" --arg k "$1" \
+     '.copilot == $c and .storefront == $s and .environment == $e and .colour == $k' <<< "$v" >/dev/null \
+     && log "  check /version: $(jq -r .version <<< "$v"), $1, both digests match" || { log "  check /version: WRONG BUILD $v"; return 1; }
+  curl -sf --max-time 3 "$u/copilot/ask?q=docker" | jq -e '.answer | test("DevOps")' >/dev/null \
+     && log "  check /copilot/ask?q=docker: answers DevOps" || { log "  check /copilot/ask: FAILED"; return 1; }
+  curl -sf --max-time 3 "$u/copilot/price?title=DevOps" | jq -e '.price == 499' >/dev/null \
+     && log "  check /copilot/price (PostgreSQL + Redis): 499" || { log "  check /copilot/price: FAILED"; return 1; }; }
+
+watch(){      # watch <colour>: read the load balancer log; true = healthy for WATCH_SECONDS
+  local col=$1 end=$(( $(date +%s) + WATCH_SECONDS )) total bad pct
+  while (( $(date +%s) < end )); do
+    sleep 2
+    read -r total bad < <(tail -n 4000 $LB/log/lb.log | awk -v from=$(( $(date +%s) - WINDOW )) -v c=$col \
+      '$1 >= from && $2 == c { t++; if ($3 >= 500) b++ } END { print t+0, b+0 }')
+    pct=$(( total ? bad * 100 / total : 0 ))
+    log "  watch: $col served $total requests in the last ${WINDOW}s, $bad failed ($pct%)"
+    if (( total >= MIN_REQ && pct > MAX_FAIL_PCT )); then return 1; fi
+  done; }
+
+release_env(){   # release_env <colour> <copilot-digest> <storefront-digest> : what Compose fills into compose.yaml
+  printf 'COLOUR=%s\nWEB_IP=%s\nCOPILOT_IMAGE=%s\nCOPILOT_DIGEST=%s\nSTOREFRONT_IMAGE=%s\nSTOREFRONT_DIGEST=%s\n' \
+    "$1" "${IP[$1]}" "$REG/copilot@$2" "$2" "$REG/storefront@$3" "$3" > $APP/release.$1.env; }
+compose(){ docker compose -f $APP/compose.yaml -p "$1" --env-file $APP/release.$1.env "${@:2}"; }
+
+deploy(){        # deploy <copilot> <storefront> <run> <kind>
+  local c=$1 s=$2 run=$3 kind=$4 live idle version revision t0 sw
+  live=$(jq -r '.live.colour // empty' $REC); idle=$( [[ -n $live ]] && other $live || echo blue )
+  docker pull -q $REG/copilot@$c >/dev/null && docker pull -q $REG/storefront@$s >/dev/null
+  version=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' $REG/copilot@$c)
+  revision=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' $REG/copilot@$c); revision=${revision:0:7}
+  log "deploy-agent on $(hostname) ($APP_ENV): $kind $version ($revision)"
+  log "live: ${live:-nothing}, so the new release goes to $idle"
+  rec --arg run "$run" --arg v "$version" --arg r "$revision" --arg c "$c" --arg s "$s" --arg k "$idle" --arg t "$(now)" --arg kind "$kind" \
+    '.history = [{run: $run, kind: $kind, version: $v, revision: $r, copilot: $c, storefront: $s, colour: $k, started: $t, result: "deploying", smoke: "pending"}] + .history'
+  fail(){ log "$1"; compose $idle down --remove-orphans >/dev/null 2>&1 || true
+    rec --arg run "$run" --arg why "$2" '(.history[] | select(.run == $run)).result = $why'; exit 1; }
+  log "database: expand-only migrations, safe for the live colour"
+  docker run --rm --network data --env-file $APP/secrets/db.env --entrypoint sh $REG/copilot@$c \
+    -c 'python db/apply.py db/migrations/*.sql' | sed 's/^/  /'
+  release_env $idle $c $s
+  compose $idle down --remove-orphans >/dev/null 2>&1 || true        # whatever was idle on that colour
+  rec --arg k $idle 'if .standby.colour == $k then .standby = null else . end'
+  log "starting $idle: storefront + Course Copilot, waiting for healthy"
+  if ! compose $idle up -d --wait --wait-timeout 30 >/dev/null 2>&1; then
+    compose $idle ps -a --format '{{.Service}}: {{.Status}}' | sed 's/^/  /'
+    compose $idle logs --no-log-prefix --tail 1 copilot 2>&1 | sed 's/^/  copilot log: /'
+    fail "$idle did not become healthy: no switch, ${live:-nothing} keeps serving" refused
+  fi
+  log "$idle is healthy. checks, straight to $idle (users are still on ${live:-nothing}):"
+  checks $idle $c $s || fail "$idle failed its checks: no switch, ${live:-nothing} keeps serving" refused
+  t0=$(ms); lb_route $idle; sw=$(( $(ms) - t0 ))
+  log "switched: all traffic -> $idle ($sw ms)"
+  rec --arg run "$run" --argjson sw $sw --arg t "$(now)" '(.history[] | select(.run == $run)) |= . + {switched: $t, switch_ms: $sw}'
+  log "watching $idle for ${WATCH_SECONDS}s"
+  if ! watch $idle; then
+    if [[ -n $live ]]; then t0=$(ms); lb_route $live; log "ERROR SPIKE on $idle: switched back to $live ($(( $(ms) - t0 )) ms)"; fi
+    rec --arg t "$(now)" --arg run "$run" '(.history[] | select(.run == $run)).switched_back = $t'
+    fail "$idle stopped. users are on ${live:-nothing} again" "switched back"
+  fi
+  rec --arg run "$run" --arg t "$(now)" --arg k "$idle" '
+    (.history[] | select(.run == $run)) |= . + {result: "live", finished: $t}
+    | .standby = (if .live then .live else null end) | .live = ((.history[] | select(.run == $run)) | {colour, version, revision, copilot, storefront, run})'
+  log "$version is live on $idle.${live:+ $live stays up with the previous release, for an instant rollback.}"; }
+
+case $cmd in
+deploy)
+  is_digest "$a1"; is_digest "$a2"; is_run "$a3"
+  live=$(jq -r '.live.colour // empty' $REC); idle=$( [[ -n $live ]] && other $live || echo blue )
+  settings $idle; deploy "$a1" "$a2" "$a3" deploy ;;
+rollback)
+  is_run "$a1"; [[ -z ${a2:-} ]] || { echo "refused: rollback takes only a run label" >&2; exit 2; }
+  sb=$(jq -c '.standby // empty' $REC)
+  [[ -n $sb ]] || { echo "refused: no previous release on standby" >&2; exit 2; }
+  k=$(jq -r .colour <<< "$sb"); c=$(jq -r .copilot <<< "$sb"); s=$(jq -r .storefront <<< "$sb")
+  live=$(jq -r .live.colour $REC); v=$(jq -r .version <<< "$sb")
+  log "deploy-agent on $(hostname) ($APP_ENV): rollback to $v, already running on $k"
+  rec --arg run "$a1" --argjson sb "$sb" --arg t "$(now)" \
+    '.history = [$sb + {run: $run, kind: "rollback", started: $t, result: "deploying", smoke: "pending"}] + .history'
+  log "checks, straight to $k:"
+  checks $k $c $s || { rec --arg run "$a1" '(.history[] | select(.run == $run)).result = "refused"'; log "standby failed its checks: no switch"; exit 1; }
+  t0=$(ms); lb_route $k; sw=$(( $(ms) - t0 )); log "switched: all traffic -> $k ($sw ms)"
+  rec --arg run "$a1" --argjson sw $sw --arg t "$(now)" --arg k "$k" '
+    (.history[] | select(.run == $run)) |= . + {result: "live", switched: $t, finished: $t, switch_ms: $sw}
+    | .standby = .live | .live = ((.history[] | select(.run == $run)) | {colour, version, revision, copilot, storefront, run})'
+  log "$v is live on $k. $live stays up, so this can be undone the same way." ;;
+smoke)
+  is_run "$a1"; [[ $a2 == passed || $a2 == failed ]] || { echo "refused: passed or failed" >&2; exit 2; }
+  rec --arg run "$a1" --arg s "$a2" '(.history[] | select(.run == $run)).smoke = $s'
+  log "recorded: smoke $a2 for $a1 on $APP_ENV" ;;
+status) jq . $REC ;;
+*) echo "refused: deploy-agent only knows deploy, rollback, smoke and status" >&2; exit 2 ;;
+esac

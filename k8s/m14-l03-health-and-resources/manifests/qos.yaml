@@ -1,0 +1,33 @@
+# three pods, three QoS classes: Kubernetes derives the class from requests and limits
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qos-guaranteed
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests: {cpu: 200m, memory: 128Mi}
+      limits: {cpu: 200m, memory: 128Mi}      # limits == requests, for every resource
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qos-burstable
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests: {cpu: 100m, memory: 64Mi}
+      limits: {memory: 256Mi}                 # some request or limit set, not all equal
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qos-besteffort
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0                # no requests, no limits

@@ -1,0 +1,51 @@
+name: security
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0             # the whole history: a secret in an old commit still leaks
+      - name: gitleaks (any secret blocks)
+        uses: docker://zricethezav/gitleaks:v8.30.1
+        with:
+          args: git --redact --no-banner -v .
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep (ERROR rules block)
+        uses: docker://semgrep/semgrep:1.182.0
+        with:
+          entrypoint: semgrep
+          args: scan --config .semgrep/ --metrics=off --error copilot/
+
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: trivy report (everything, warn only)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --ignorefile .trivyignore.yaml --exit-code 0 -q copilot/
+      - name: trivy gate (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --ignorefile .trivyignore.yaml --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q copilot/
+
+  iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkov (new findings block, known ones are in the baseline)
+        uses: docker://bridgecrew/checkov:3.3.30
+        with:
+          entrypoint: checkov
+          args: -d infra --framework terraform --baseline infra/.checkov.baseline --external-checks-dir infra/policies --compact --quiet

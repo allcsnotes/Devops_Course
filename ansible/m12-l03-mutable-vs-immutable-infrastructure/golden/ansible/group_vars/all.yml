@@ -1,0 +1,13 @@
+# variables for every host in the inventory
+app_env: production
+
+# people and robots with a login on every server (public keys are not secrets)
+common_users:
+  - name: deploy
+    comment: CI deploy user
+    groups: []
+    key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILnOZ8TcEFeOMDI5ThNw6vYv36VcjiKaxSAW0r/147se deploy@example.com
+  - name: priya
+    comment: Priya (developer)
+    groups: [adm]
+    key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINsUXacFkumEfPIWJ/SuqszYvFFK5hS7qrhzMAtev8de priya@example.com

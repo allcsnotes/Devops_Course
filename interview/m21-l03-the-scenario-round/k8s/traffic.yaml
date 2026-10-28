@@ -1,0 +1,21 @@
+# the users: an open-model traffic generator in its own namespace (lab), RATE requests per second for DURATION s
+apiVersion: v1
+kind: Pod
+metadata: {name: traffic, namespace: lab}
+spec:
+  restartPolicy: Never
+  containers:
+  - name: traffic
+    image: python:3.13.16-slim
+    imagePullPolicy: IfNotPresent
+    command: [python, -u, /load/traffic.py]
+    env:
+    - {name: RATE, value: "RATE_VALUE"}
+    - {name: DURATION, value: "DURATION_VALUE"}
+    - {name: TZ, value: "IST-5:30"}
+    volumeMounts: [{name: load, mountPath: /load}]
+    resources:
+      requests: {cpu: 200m}
+  volumes:
+  - name: load
+    configMap: {name: traffic}

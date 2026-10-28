@@ -1,0 +1,40 @@
+# allcs: the catalog namespace, and catalog-eso: the service account ESO logs in to Vault as (no secret needed)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allcs
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalog-eso
+  namespace: allcs
+---
+# vault-reviewer: the identity Vault uses to ask the API server "is this service account token real?" (TokenReview)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-reviewer
+  namespace: kube-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-reviewer-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: vault-reviewer
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-reviewer-tokenreview
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: vault-reviewer
+  namespace: kube-system

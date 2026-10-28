@@ -1,0 +1,76 @@
+// Grafana Alloy: the collection agent. Logs: this project's app containers -> Loki.
+// Metrics: an embedded Postgres exporter for the catalog database -> Prometheus (remote write).
+discovery.docker "lab" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"     // pick up a redeployed container within seconds
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=m16-full"]
+  }
+}
+
+discovery.relabel "apps" {
+  targets = discovery.docker.lab.targets
+  rule {   // only the app containers
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "api|copilot"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "apps" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.apps.output
+  forward_to = [loki.process.apps.receiver]
+}
+
+loki.process "apps" {
+  stage.json {
+    expressions = { level = "level", trace_id = "trace_id" }
+  }
+  stage.labels {                  // a label: few values
+    values = { level = "" }
+  }
+  stage.structured_metadata {     // high cardinality: attached to the line, not indexed
+    values = { trace_id = "" }
+  }
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+prometheus.exporter.postgres "catalog" {
+  data_source_names = ["postgresql://app:demo-password-123@db:5432/catalog?sslmode=disable"]   // fake lab password
+}
+
+discovery.relabel "catalog" {
+  targets = prometheus.exporter.postgres.catalog.targets
+  rule {
+    target_label = "job"
+    replacement  = "postgres"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = "catalog-db"
+  }
+}
+
+prometheus.scrape "catalog" {
+  targets         = discovery.relabel.catalog.output
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}

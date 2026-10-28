@@ -1,0 +1,75 @@
+---
+- name: Install what hc needs
+  ansible.builtin.apt:
+    name: [python3, logrotate, util-linux]
+    state: present
+
+- name: Create the hc system user
+  ansible.builtin.user:
+    name: hc
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Create the toolkit folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: [/opt/hc/bin, /opt/hc/lib]
+
+- name: Copy the toolkit
+  ansible.builtin.copy:
+    src: "hc/{{ item.src }}"
+    dest: "/opt/hc/{{ item.src }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: bin/hc, mode: "0755" }
+    - { src: lib/checks.sh, mode: "0644" }
+    - { src: lib/http_check.py, mode: "0644" }
+    - { src: lib/report.py, mode: "0644" }
+  loop_control:
+    label: "{{ item.src }}"
+
+- name: Put hc on the PATH
+  ansible.builtin.file:
+    src: /opt/hc/bin/hc
+    dest: /usr/local/bin/hc
+    state: link
+
+- name: Create /etc/hc
+  ansible.builtin.file:
+    path: /etc/hc
+    state: directory
+    mode: "0755"
+
+- name: Render hc.conf for this host
+  ansible.builtin.template:
+    src: hc.conf.j2
+    dest: /etc/hc/hc.conf
+    owner: root
+    group: hc
+    mode: "0640"
+
+- name: Install the systemd units and the logrotate rule
+  ansible.builtin.copy:
+    src: "hc/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - { src: systemd/hc.service, dest: /etc/systemd/system/hc.service }
+    - { src: systemd/hc.timer, dest: /etc/systemd/system/hc.timer }
+    - { src: logrotate/hc, dest: /etc/logrotate.d/hc }
+  loop_control:
+    label: "{{ item.dest }}"
+  notify: reload systemd
+
+- name: Apply unit changes before starting the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the hc timer
+  ansible.builtin.systemd_service:
+    name: hc.timer
+    state: started
+    enabled: true
+  when: not image_build

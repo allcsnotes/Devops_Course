@@ -1,0 +1,21 @@
+# Gitea runner (gitea/runner:5.1.1) for the task 4 lab. Jobs get their own Docker daemon (m21lab-t04-docker),
+# never the laptop's Docker socket.
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 2
+  envs:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: false
+container:
+  network: m21lab-t04-net
+  options: --label course=devops --volume m21lab-t04-dind-certs:/certs:ro
+  valid_volumes:
+    - m21lab-t04-dind-certs:ro
+  docker_host: "-"

@@ -1,0 +1,5 @@
+# CoreDNS hosts block: TRAEFIK_IP is replaced with the cluster IP of the traefik Service (see README step 15)
+    hosts {
+       TRAEFIK_IP allcsvideos.test api.allcsvideos.test www.allcsvideos.test
+       fallthrough
+    }

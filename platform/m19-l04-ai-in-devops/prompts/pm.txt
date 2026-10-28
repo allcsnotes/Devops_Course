@@ -1,0 +1,29 @@
+Draft a blameless postmortem from this incident timeline. Sections: Summary (3 sentences), Impact (with numbers), Timeline (key events), Root cause, Action items (owner and type). Use only facts from the timeline; write TODO where the timeline does not say.
+
+timeline of r2 (T = first failed request, 21:18:00 IST)
+21:17:59  T-00:02  deploy  catalog-api 1.5.0 rollout started (priya)
+21:18:00  T+00:00  users   first failed request (impact starts)
+21:18:06  T+00:05  deploy  catalog-api 1.5.0 rollout finished (priya)
+21:19:23  T+01:23  pager   page #1 CatalogErrorBudgetBurn
+21:19:23  T+01:23  pager   paged asha (primary)
+21:19:50  T+01:50  pager   acknowledged by asha
+21:19:57  T+01:56  asha    SEV2 declared: course list failing for most users. IC asha, ops lead rahul, comms priya
+21:20:05  T+02:05  status  investigating: Course catalog partial
+21:20:13  T+02:12  rahul   Errors began with the 1.5.0 deploy. /api/courses hits the 1 s statement timeout on the new trending query. Propose rollback to 1.4.2.
+21:20:13  T+02:12  asha    Approved: roll back to 1.4.2 now. Fix forward later.
+21:20:13  T+02:12  deploy  rollback to 1.4.2 started (rahul)
+21:20:15  T+02:15  users   last failed request (impact ends)
+21:20:20  T+02:19  deploy  rollback to 1.4.2 finished (rahul)
+21:20:23  T+02:23  ticket  CatalogLatencyHigh firing (ticket queue, nobody paged)
+21:21:01  T+03:00  rahul   Error ratio back to 0 since the rollback. Course list loads.
+21:21:01  T+03:01  status  monitoring: Course catalog operational
+21:21:23  T+03:23  pager   alert resolved
+21:21:54  T+03:53  asha    Resolved. Postmortem owner: rahul. Review on Friday.
+21:21:54  T+03:54  status  resolved: Course catalog operational
+time to detect (first failure -> page):       1 min 23 s
+time to acknowledge (page -> ack):            0 min 27 s
+time to restore (first -> last failure):      2 min 15 s
+requests during impact: 1355, failed: 890 (65.7%)
+  /api/courses       878 of 934 failed (94.0%)
+  /api/courses/<id>  12 of 421 failed (2.9%)
+error budget used: 890 of 129,600 failures allowed in 30 days at 10 req/s (0.69%)

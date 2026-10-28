@@ -1,0 +1,14 @@
+# staged: a nightly report that asks for far more CPU than any node has
+apiVersion: v1
+kind: Pod
+metadata:
+  name: report
+  labels: {app: report, course: devops}
+spec:
+  containers:
+  - name: report
+    image: catalog-api:2.5.0
+    envFrom:
+    - configMapRef: {name: api-config}
+    resources:
+      requests: {cpu: "20", memory: 64Mi}

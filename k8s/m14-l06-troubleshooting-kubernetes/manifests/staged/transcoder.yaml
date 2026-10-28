@@ -1,0 +1,16 @@
+# staged: a pod that wants a node label no node has
+apiVersion: v1
+kind: Pod
+metadata:
+  name: transcoder
+  labels: {app: transcoder, course: devops}
+spec:
+  nodeSelector:
+    disktype: ssd
+  containers:
+  - name: transcoder
+    image: catalog-api:2.5.0
+    envFrom:
+    - configMapRef: {name: api-config}
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}

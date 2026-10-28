@@ -1,0 +1,2 @@
+# variables for every host in the inventory
+ansible_user: asha

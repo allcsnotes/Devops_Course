@@ -1,0 +1,26 @@
+# Optional: a kind cluster with encryption at rest from day one (verified on kind v0.33.0 / Kubernetes v1.37.0).
+# ENC_DIR is replaced with the absolute path of this kind-enc folder (it must contain enc.yaml), e.g.
+#   sed "s|ENC_DIR|$PWD/kind-enc|" kind-enc/kind-enc-cluster.yaml > kind-enc/cluster.yaml
+#   kind create cluster --name lab-enc --config kind-enc/cluster.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  extraMounts:                         # the EncryptionConfiguration, from your laptop
+  - hostPath: ENC_DIR
+    containerPath: /etc/kubernetes/enc
+    readOnly: true
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+      extraArgs:
+      - name: encryption-provider-config
+        value: /etc/kubernetes/enc/enc.yaml
+      extraVolumes:
+      - name: enc
+        hostPath: /etc/kubernetes/enc
+        mountPath: /etc/kubernetes/enc
+        readOnly: true
+        pathType: DirectoryOrCreate

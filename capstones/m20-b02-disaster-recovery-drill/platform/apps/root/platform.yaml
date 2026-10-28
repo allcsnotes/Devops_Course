@@ -1,0 +1,17 @@
+# platform: the allcs namespace, the identities Vault trusts, and the SecretStore that points ESO at Vault
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://10.0.202.5:3000/allcsvideos/platform.git
+    targetRevision: main
+    path: apps/platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    retry: {limit: 20, backoff: {duration: 10s, factor: 2, maxDuration: 1m}}

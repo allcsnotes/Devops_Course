@@ -1,0 +1,5 @@
+logging {
+    channel file_log { file "/var/log/named/named.log" versions 3 size 5m; print-time yes; severity info; };
+    category default { file_log; };
+    category lame-servers { null; };
+};

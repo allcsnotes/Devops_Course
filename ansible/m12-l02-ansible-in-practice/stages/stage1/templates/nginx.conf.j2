@@ -1,0 +1,40 @@
+# {{ ansible_managed }}
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+error_log /var/log/nginx/error.log;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections {{ nginx_worker_connections }};
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    server_tokens off;
+    access_log /var/log/nginx/access.log;
+
+    upstream api {
+{% for backend in api_backends %}
+        server {{ backend }};
+{% endfor %}
+    }
+
+    server {
+        listen 80 default_server;
+        server_name {{ nginx_server_name }};
+        root /var/www/allcsvideos;
+
+        location = /health {
+            default_type application/json;
+            return 200 '{"status":"ok","host":"{{ inventory_hostname }}","env":"{{ app_env }}"}\n';
+        }
+        location /api/ {
+            proxy_pass http://api;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+    }
+}

@@ -1,0 +1,104 @@
+# STAGED MISTAKE (M08-L03): service containers WITHOUT health checks, and Postgres squeezed to a quarter of a CPU.
+# The migration can race the database. Copy over .github/workflows/copilot.yml, watch, then use copilot-2.
+name: copilot
+on:
+  push:
+    branches: [main]
+    paths: ["copilot/**", ".github/workflows/copilot.yml"]
+  pull_request:
+    paths: ["copilot/**", ".github/workflows/copilot.yml"]
+
+defaults:
+  run:
+    working-directory: copilot
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the Dockerfile
+        uses: docker://hadolint/hadolint:v2.15.1
+        with:
+          args: hadolint copilot/Dockerfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py3.13-${{ hashFiles('copilot/requirements*.txt') }}
+          restore-keys: pip-${{ runner.os }}-py3.13-
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy app
+
+  unit:
+    needs: lint
+    name: unit (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py${{ matrix.python }}-${{ hashFiles('copilot/requirements*.txt') }}
+          restore-keys: pip-${{ runner.os }}-py${{ matrix.python }}-
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Unit tests
+        run: >-
+          pytest -m "not integration"
+          --junitxml=reports/junit.xml
+          --cov=app --cov-report=xml:reports/coverage.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report-py${{ matrix.python }}
+          path: copilot/reports/
+
+  integration:
+    needs: unit
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        ports: ["5432:5432"]   # GitHub: the job runs on the VM, so it reaches services on localhost
+        env:
+          POSTGRES_USER: allcsvideos
+          POSTGRES_PASSWORD: demo-password-123   # FAKE: a throwaway CI database
+          POSTGRES_DB: allcsvideos
+        options: --cpus 0.25          # staged: a busy CI machine
+      redis:
+        image: redis:8.10.2-alpine3.23
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql://allcsvideos:demo-password-123@localhost:5432/allcsvideos
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      # a container action joins the job's Docker network, so it reaches the service by its name: postgres
+      - name: Apply the migrations
+        uses: docker://postgres:18.6-alpine3.24
+        env:
+          PGPASSWORD: demo-password-123
+        with:
+          entrypoint: psql
+          args: -h postgres -U allcsvideos -d allcsvideos -v ON_ERROR_STOP=1 -f copilot/db/migrations/001_courses.sql
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py3.13-${{ hashFiles('copilot/requirements*.txt') }}
+          restore-keys: pip-${{ runner.os }}-py3.13-
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest -m integration -v

@@ -1,0 +1,26 @@
+--- workspace/charts/allcsvideos-api/Chart.yaml
++++ workspace/charts/allcsvideos-api/Chart.yaml
+@@ -2,5 +2,5 @@
+ name: allcsvideos-api
+ description: The allcsvideos catalog API
+ type: application
+-version: 0.1.0
++version: 0.2.0
+ appVersion: "2.4.0"
+--- workspace/charts/allcsvideos-api/values.yaml
++++ workspace/charts/allcsvideos-api/values.yaml
+@@ -9,6 +9,7 @@
+ config:
+   databaseUrl: postgres://api@db.allcsvideos.internal:5432/catalog
+   logLevel: INFO
++  cacheTtlSeconds: 300
+ 
+ ingress:
+   enabled: false
+--- workspace/charts/allcsvideos-api/templates/configmap.yaml
++++ workspace/charts/allcsvideos-api/templates/configmap.yaml
+@@ -7,3 +7,4 @@
+ data:
+   DATABASE_URL: {{ .Values.config.databaseUrl | quote }}
+   LOG_LEVEL: {{ .Values.config.logLevel | quote }}
++  CACHE_TTL_SECONDS: {{ .Values.config.cacheTtlSeconds | quote }}

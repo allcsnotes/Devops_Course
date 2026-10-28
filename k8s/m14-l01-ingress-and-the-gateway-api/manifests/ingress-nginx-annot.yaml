@@ -1,0 +1,32 @@
+# Staged mistake: an ingress-nginx annotation, copied onto a Traefik Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: allcsvideos
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /   # ingress-nginx only
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: allcsvideos.test
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix          # /api, /api/..., element by element
+        backend:
+          service: {name: api-v1, port: {name: http}}
+      - path: /copilot
+        pathType: Exact           # only /copilot itself
+        backend:
+          service: {name: copilot, port: {name: http}}
+      - path: /
+        pathType: Prefix          # everything else
+        backend:
+          service: {name: storefront, port: {name: http}}
+  - host: api.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: {name: api-v1, port: {name: http}}

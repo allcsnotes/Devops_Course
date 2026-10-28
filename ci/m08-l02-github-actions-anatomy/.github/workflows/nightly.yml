@@ -1,0 +1,23 @@
+# nightly.yml (M08-L02): an hc dry run every night at 02:00 IST, or by hand with an input (Run workflow button).
+name: nightly
+on:
+  schedule:
+    - cron: "30 20 * * *"   # 20:30 UTC = 02:00 IST
+  workflow_dispatch:
+    inputs:
+      config:
+        description: which hc test config to check
+        type: choice
+        options: [ok, warn]
+        default: ok
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dry-run hc
+        env:
+          CONF: ${{ inputs.config || 'ok' }}
+        run: |
+          echo "event: ${{ github.event_name }}, config: $CONF"
+          bash hc/bin/hc -n -c "hc/tests/$CONF.conf"

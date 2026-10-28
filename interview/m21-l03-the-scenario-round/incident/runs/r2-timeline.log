@@ -1,0 +1,5 @@
+{"epoch":1792623032,"who":"asha","msg":"SEV2 declared: course list failing for most users. IC asha, ops lead rahul, comms priya"}
+{"epoch":1792623051,"who":"rahul","msg":"Errors began with the 1.5.0 deploy. /api/courses hits the 1 s statement timeout on the trending query. Propose rollback to 1.4.2."}
+{"epoch":1792623051,"who":"asha","msg":"Approved: roll back to 1.4.2 now. Root cause after."}
+{"epoch":1792623125,"who":"rahul","msg":"Error ratio back to 0 since the rollback. Course list loads."}
+{"epoch":1792623156,"who":"asha","msg":"Resolved. Postmortem owner: rahul. Review on Friday."}

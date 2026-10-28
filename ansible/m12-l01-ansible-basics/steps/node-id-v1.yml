@@ -1,0 +1,8 @@
+---
+- name: Give every server a node ID
+  hosts: db
+  become: true
+
+  tasks:
+    - name: Write a node ID
+      ansible.builtin.shell: cat /proc/sys/kernel/random/uuid > /etc/allcs-node-id

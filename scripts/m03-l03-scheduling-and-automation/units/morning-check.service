@@ -1,0 +1,7 @@
+[Unit]
+Description=Morning health check for web-01
+
+[Service]
+Type=oneshot
+User=asha
+ExecStart=/home/asha/bin/morning-check.sh

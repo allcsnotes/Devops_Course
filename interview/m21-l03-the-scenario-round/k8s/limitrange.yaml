@@ -1,0 +1,10 @@
+# staged: new namespace defaults from the platform team. Any container WITHOUT its own memory
+# request/limit gets these, at pod creation time.
+apiVersion: v1
+kind: LimitRange
+metadata: {name: defaults, namespace: allcs}
+spec:
+  limits:
+  - type: Container
+    defaultRequest: {memory: 16Mi}
+    default: {memory: 32Mi}

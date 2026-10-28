@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s       # how often to pull every target
+  evaluation_interval: 15s   # how often to run rules
+
+scrape_configs:
+  - job_name: prometheus     # Prometheus scrapes itself
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: node           # the machine: CPU, memory, disk
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: copilot        # our app, two copies
+    static_configs:
+      - targets: ["copilot-1:8000", "copilot-2:8000"]
+        labels:
+          env: lab

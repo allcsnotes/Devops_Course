@@ -1,0 +1,12 @@
+# Argo CD project: what the allcsvideos apps may deploy (this repo only, namespace allcs only)
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: allcsvideos
+  namespace: argocd
+spec:
+  sourceRepos: [http://10.0.201.40:3000/allcsvideos/allcsvideos-deploy.git]
+  destinations:
+  - {server: https://kubernetes.default.svc, namespace: allcs}
+  clusterResourceWhitelist:
+  - {group: "", kind: Namespace}

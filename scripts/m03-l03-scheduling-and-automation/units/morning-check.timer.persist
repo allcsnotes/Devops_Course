@@ -1,0 +1,11 @@
+[Unit]
+Description=Run morning-check (test: Persistent)
+
+[Timer]
+# Test only: the README's sed command sets OnCalendar to two minutes from now.
+OnCalendar=*-*-* 00:00:00
+Persistent=true
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

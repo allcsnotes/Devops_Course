@@ -1,0 +1,11 @@
+# staged mistake: the selector doesn't match the pods' labels
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-v2
+spec:
+  selector:
+    app: api-server
+  ports:
+  - port: 80
+    targetPort: 8080

@@ -1,0 +1,17 @@
+.python: &python
+  image: python:3.13.16-slim
+  variables:
+    PIP_CACHE_DIR: .cache/pip
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+unit-anchor:            # YAML anchor: <<: copies the top-level keys
+  <<: *python
+  variables:
+    PY: "3.12.15"
+  script: [pytest]
+
+unit-extends:           # GitLab extends: merges nested hashes too
+  extends: .python
+  variables:
+    PY: "3.12.15"
+  script: [pytest]

@@ -1,0 +1,18 @@
+# simulated users: 20 requests a second to http://api, run with kubectl exec
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic
+  template:
+    metadata:
+      labels:
+        app: traffic
+    spec:
+      containers:
+      - name: traffic
+        image: health-traffic:1.0

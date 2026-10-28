@@ -1,0 +1,68 @@
+---
+- name: Install the base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Set the time zone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Create the timesyncd drop-in folder
+  ansible.builtin.file:
+    path: /etc/systemd/timesyncd.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Point timesyncd at our NTP servers
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf.d/10-allcsvideos.conf
+    mode: "0644"
+  notify: restart timesyncd
+
+- name: Enable timesyncd at boot
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd
+    enabled: true
+
+- name: Install security updates automatically
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/apt/apt.conf.d/{{ item }}"
+    mode: "0644"
+  loop: [20auto-upgrades, 52allcsvideos-unattended-upgrades]
+
+- name: Create the admin groups
+  ansible.builtin.group:
+    name: "{{ item }}"
+  loop: [admins, sshusers]
+
+- name: Create the admin users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment }}"
+    groups: [admins, sshusers]
+    append: true
+    shell: /bin/bash
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Authorise their SSH keys (and only those)
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.key }}"
+    exclusive: true
+  loop: "{{ admin_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Let admins use sudo
+  ansible.builtin.copy:
+    content: "%admins ALL=(ALL:ALL) NOPASSWD: ALL\n"
+    dest: /etc/sudoers.d/10-admins
+    mode: "0440"
+    validate: visudo -cf %s

@@ -1,0 +1,95 @@
+// Course Copilot pipeline for Jenkins: the same jobs as .gitea/workflows/copilot.yml
+// (lint -> unit tests on two Pythons -> integration tests with PostgreSQL and Redis -> image on main)
+pipeline {
+  agent { label 'linux && docker' }          // never the controller: it has 0 executors
+  options { timeout(time: 20, unit: 'MINUTES') }
+  environment {
+    IMAGE = 'gitea:3000/allcsvideos/course-copilot'
+    PIP_CACHE_DIR = "${WORKSPACE}/.cache/pip"   // the workspace stays on the agent between builds
+    PIP_DISABLE_PIP_VERSION_CHECK = '1'
+  }
+  stages {
+    stage('Lint') {
+      parallel {
+        stage('Dockerfile') {
+          steps { sh 'docker run --rm -i hadolint/hadolint:v2.15.1 < copilot/Dockerfile' }
+        }
+        stage('Python') {
+          agent { docker { image 'python:3.13.16-slim'; reuseNode true } }
+          steps {
+            dir('copilot') {
+              sh '''
+                python -m venv .venv-lint
+                .venv-lint/bin/pip install -q -r requirements.txt -r requirements-dev.txt
+                .venv-lint/bin/ruff check .
+                .venv-lint/bin/ruff format --check .
+                .venv-lint/bin/mypy app
+              '''
+            }
+          }
+        }
+      }
+    }
+    stage('Unit') {
+      matrix {
+        axes { axis { name 'PY'; values '3.12.15', '3.13.16' } }
+        agent { docker { image "python:${PY}-slim"; reuseNode true } }
+        stages {
+          stage('pytest') {
+            steps {
+              dir('copilot') {
+                sh '''
+                  python -m venv .venv-$PY
+                  .venv-$PY/bin/pip install -q -r requirements.txt -r requirements-dev.txt
+                  .venv-$PY/bin/pytest -m "not integration" --junitxml=reports/junit-$PY.xml
+                '''
+              }
+            }
+          }
+        }
+        post { always { junit "copilot/reports/junit-${PY}.xml" } }
+      }
+    }
+    stage('Integration') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'ci-db',
+            usernameVariable: 'POSTGRES_USER', passwordVariable: 'POSTGRES_PASSWORD')]) {
+          script {
+            // "sidecar" containers: Jenkins has no services: keyword, so the pipeline starts them itself
+            docker.image('postgres:18.6-alpine3.24').withRun('-e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB=allcsvideos') { pg ->
+              docker.image('redis:8.10.2-alpine3.23').withRun() { rd ->
+                sh "until docker exec ${pg.id} pg_isready -h localhost -U allcsvideos; do sleep 1; done"
+                sh "docker exec -i ${pg.id} psql -q -U allcsvideos -d allcsvideos -v ON_ERROR_STOP=1 < copilot/db/migrations/001_courses.sql"
+                docker.image('python:3.13.16-slim').inside("--link ${pg.id}:postgres --link ${rd.id}:redis") {
+                  dir('copilot') {
+                    sh '''
+                      export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/allcsvideos"
+                      export REDIS_URL=redis://redis:6379/0
+                      .venv-3.13.16/bin/pytest -m integration -v --junitxml=reports/junit-integration.xml
+                    '''
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      post { always { junit 'copilot/reports/junit-integration.xml' } }
+    }
+    stage('Image') {
+      when { branch 'main' }
+      environment {
+        REGISTRY = credentials('registry')     // sets REGISTRY_USR and REGISTRY_PSW, masked in the log
+        TAG = "sha-${env.GIT_COMMIT.take(7)}"
+      }
+      steps {
+        sh 'docker build -q -t $IMAGE:$TAG copilot'
+        sh 'docker save -o copilot.tar $IMAGE:$TAG'
+        sh 'docker run --rm -v $WORKSPACE:$WORKSPACE -w $WORKSPACE -v trivy-cache:/root/.cache aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222 image -q --input copilot.tar --scanners vuln --exit-code 1 --severity CRITICAL'
+        sh 'echo "$REGISTRY_PSW" | docker login gitea:3000 -u "$REGISTRY_USR" --password-stdin'
+        sh 'docker push -q $IMAGE:$TAG'
+      }
+      post { always { sh 'docker logout gitea:3000; rm -f copilot.tar' } }
+    }
+  }
+}

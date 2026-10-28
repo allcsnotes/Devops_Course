@@ -1,0 +1,1 @@
+{"rule_name":"main","enable_push":false,"required_approvals":1,"block_on_codeowner_reviews":true,"block_on_rejected_reviews":true,"dismiss_stale_approvals":true,"enable_status_check":true,"status_check_contexts":["ci/hc-tests"],"block_on_outdated_branch":true,"block_admin_merge_override":true,"enable_force_push":false}

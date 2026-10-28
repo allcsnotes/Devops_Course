@@ -1,0 +1,23 @@
+# Argo CD v3.5.6 "core" install (manifests/core-install.yaml at tag v3.5.6, vendored in this repo so a restore does not
+# depend on GitHub; lab/up.sh downloads it from
+# https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.6/manifests/core-install.yaml before the first push):
+# the GitOps engine without the web UI, Dex or notifications. Lab patches below. Apply:
+#   kubectl apply -k bootstrap/argocd --server-side --force-conflicts
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+resources:
+- namespace.yaml
+- core-install-v3.5.6.yaml
+- default-project.yaml
+patches:
+# ApplicationSets aren't used here: one pod less on a busy laptop
+- target: {kind: Deployment, name: argocd-applicationset-controller}
+  patch: |-
+    - {op: replace, path: /spec/replicas, value: 0}
+# slower health probes: on a laptop shared with other labs, a 1 s probe timeout restarts healthy pods
+- target: {kind: Deployment, name: argocd-repo-server}
+  patch: |-
+    - {op: replace, path: /spec/template/spec/containers/0/livenessProbe/timeoutSeconds, value: 10}
+    - {op: replace, path: /spec/template/spec/containers/0/livenessProbe/failureThreshold, value: 6}
+    - {op: replace, path: /spec/template/spec/containers/0/readinessProbe/timeoutSeconds, value: 10}

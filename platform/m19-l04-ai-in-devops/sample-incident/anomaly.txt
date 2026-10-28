@@ -1,0 +1,4 @@
+z-score of p95 latency per service, baseline 30 min, threshold |z| > 3
+  catalog-api     anomaly from 02:00:15 (z = 3.2), peak z = 48.6 at 02:01:15
+  course-copilot  anomaly from 02:00:30 (z = 16.7), peak z = 18.9 at 02:03:00
+  storefront-bff  anomaly from 02:00:30 (z = 26.9), peak z = 29.6 at 02:01:15

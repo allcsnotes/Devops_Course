@@ -1,0 +1,4 @@
+fastapi==0.154.0
+uvicorn==0.54.0
+openfeature-sdk==0.10.0
+openfeature-provider-flagd==0.6.0

@@ -1,0 +1,35 @@
+# catalog-api in namespace shop: 4 replicas. Rollout one pod at a time; a pod counts as ready only after
+# a 20 s initial delay, then a probe every 10 s.
+apiVersion: v1
+kind: Namespace
+metadata: {name: shop}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: catalog-api, namespace: shop}
+spec:
+  replicas: 4
+  strategy:
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector: {matchLabels: {app: catalog-api}}
+  template:
+    metadata: {labels: {app: catalog-api}}
+    spec:
+      containers:
+      - name: api
+        image: catalog-api:1.5.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - {name: OTEL_TRACES_EXPORTER, value: none}
+        - {name: OTEL_METRICS_EXPORTER, value: none}
+        - {name: OTEL_LOGS_EXPORTER, value: none}
+        - {name: TZ, value: "IST-5:30"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests: {cpu: 50m, memory: 96Mi}
+          limits: {memory: 192Mi}

@@ -1,0 +1,26 @@
+# hc-lint: a composite action that lives in the repo (M08-L02). Fixed version: any *.sh file, or any file with #!
+name: hc-lint
+description: Syntax-check the shell and Python files of the hc toolkit
+inputs:
+  path:
+    description: the folder to check
+    default: hc
+runs:
+  using: composite
+  steps:
+    - name: bash -n on every shell script
+      shell: bash
+      run: |
+        n=0
+        for f in $(find "${{ inputs.path }}" -type f); do
+          if [[ $f == *.sh ]] || head -1 "$f" | grep -qE '^#!.*sh'; then
+            bash -n "$f"
+            n=$((n + 1))
+          fi
+        done
+        echo "shell ok: $n scripts"
+    - name: Python byte-compile
+      shell: bash
+      run: |
+        python -m py_compile "${{ inputs.path }}"/lib/*.py
+        echo "python ok: $(python --version)"

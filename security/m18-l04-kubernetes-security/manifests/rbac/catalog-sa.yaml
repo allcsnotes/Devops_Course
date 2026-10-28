@@ -1,0 +1,7 @@
+# The catalog app never calls the Kubernetes API: don't mount a token into its pods at all.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalog
+  namespace: catalog
+automountServiceAccountToken: false

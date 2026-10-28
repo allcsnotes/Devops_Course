@@ -1,0 +1,13 @@
+# Grafana reads this at startup: one Prometheus data source, with a fixed UID
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prom-lab              # pinned: dashboards refer to this UID
+    type: prometheus
+    access: proxy              # the Grafana server makes the queries
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s        # = Prometheus scrape_interval

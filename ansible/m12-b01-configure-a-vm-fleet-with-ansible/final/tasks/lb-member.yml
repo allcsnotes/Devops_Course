@@ -1,0 +1,35 @@
+---
+# Take this web server out of (lb_member: out) or back into (lb_member: in) every load balancer's pool.
+# nginx marks a "down" server as unavailable: no new requests go to it.
+- name: "Load balancer: mark this server {{ 'down' if lb_member == 'out' else 'up' }}"
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/conf.d/lb.conf
+    regexp: '^(\s*server {{ ansible_host | regex_escape }}:80 [^;]*?)( down)?;(.*)$'
+    line: "\\1{{ ' down' if lb_member == 'out' else '' }};\\3"
+    backrefs: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['lb'] }}"
+  register: lb_edit
+
+# a handler would run at the end of the play: too late, the reload must happen right now
+- name: "Load balancer: test the config"  # noqa: no-handler
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['lb'] }}"
+  when: lb_edit is changed
+
+- name: "Load balancer: reload nginx (old workers finish their requests)"  # noqa: no-handler
+  ansible.builtin.systemd_service:
+    name: nginx
+    state: reloaded
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['lb'] }}"
+  when: lb_edit is changed
+
+- name: Let in-flight requests finish
+  ansible.builtin.wait_for:
+    timeout: 2
+  delegate_to: localhost
+  become: false
+  when: lb_member == 'out' and lb_edit is changed

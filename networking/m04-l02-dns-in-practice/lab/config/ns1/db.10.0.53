@@ -1,0 +1,9 @@
+$TTL 3600
+@   IN SOA ns1.allcsvideos.test. hostmaster.allcsvideos.test. (
+            2026102001 3600 600 604800 60 )
+    IN NS   ns1.allcsvideos.test.
+10  IN PTR  ns1.allcsvideos.test.
+11  IN PTR  web-01.allcsvideos.test.
+21  IN PTR  api-01.allcsvideos.test.
+22  IN PTR  api-02.allcsvideos.test.
+53  IN PTR  resolver.allcsvideos.test.

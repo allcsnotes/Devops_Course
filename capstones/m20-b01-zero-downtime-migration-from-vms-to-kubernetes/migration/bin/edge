@@ -1,0 +1,3 @@
+#!/bin/bash
+# edge CMD...: run a command on the edge load balancer (in this lab through Docker; in real life over SSH or an API)
+exec docker exec mig-edge "$@"

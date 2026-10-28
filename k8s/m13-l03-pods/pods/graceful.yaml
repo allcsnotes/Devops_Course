@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: graceful
+  labels:
+    course: devops
+spec:
+  containers:
+  - name: app
+    image: python:3.13.16-alpine3.23
+    command: ["python3", "-u", "-c"]
+    args:
+    - |
+      import signal, sys, time
+      def log(m): print(time.strftime('%H:%M:%S'), m)
+      def stop(sig, frame):
+          log('SIGTERM received, finishing in-flight requests')
+          time.sleep(3)
+          log('shutdown complete')
+          sys.exit(0)
+      signal.signal(signal.SIGTERM, stop)
+      log('app started')
+      while True: time.sleep(1)
+    lifecycle:
+      preStop:
+        exec:
+          command: ["sh", "-c", "echo $(date +%T) preStop: draining for 5 s > /proc/1/fd/1; sleep 5"]

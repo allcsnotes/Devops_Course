@@ -1,0 +1,13 @@
+# staged on purpose: a pod that asks for more CPU than any node has
+apiVersion: v1
+kind: Pod
+metadata:
+  name: huge
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests:
+        cpu: "12"
+        memory: 64Mi

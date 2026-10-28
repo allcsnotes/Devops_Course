@@ -1,0 +1,6 @@
+<h1>allcsvideos</h1>
+{% if image_build %}
+<p>Golden image {{ image_version }}</p>
+{% else %}
+<p>Served by {{ inventory_hostname }} ({{ app_env | upper }})</p>
+{% endif %}

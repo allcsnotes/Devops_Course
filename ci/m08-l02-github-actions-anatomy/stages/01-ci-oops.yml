@@ -1,0 +1,11 @@
+# STAGED MISTAKE (M08-L02): the second step is one space to the left. Push this on a throwaway branch and watch
+# the run fail with "Invalid workflow file" before any job starts. Do not merge it.
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+     - name: Run the hc tests
+        run: bash hc/tests/run.sh

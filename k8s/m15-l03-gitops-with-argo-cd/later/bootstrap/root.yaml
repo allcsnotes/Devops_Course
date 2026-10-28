@@ -1,0 +1,23 @@
+# The only Application applied by hand. It watches apps/, and every file there is another Application.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  labels:
+    course: devops
+spec:
+  project: default
+  source:
+    repoURL: http://gitea:3000/allcsvideos/allcsvideos-deploy.git
+    targetRevision: main
+    path: apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

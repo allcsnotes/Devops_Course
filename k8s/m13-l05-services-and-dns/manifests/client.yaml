@@ -1,0 +1,10 @@
+# a debugging pod with curl, dig and tcpdump
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+spec:
+  containers:
+  - name: netshoot
+    image: nicolaka/netshoot:v0.16
+    command: ["sleep", "infinity"]

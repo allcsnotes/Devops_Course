@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api
+  labels:
+    app: api
+    course: devops
+spec:
+  volumes:
+  - name: config
+    emptyDir: {}
+  initContainers:
+  - name: wait-for-db
+    image: busybox:1.37.0
+    command: ["sh", "-c", "until nc -z db 5432; do echo waiting for db; sleep 2; done; echo db is up"]
+  - name: fetch-config
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo 'FEATURE_PLAYER=on' > /config/app.env; echo config written"]
+    volumeMounts:
+    - name: config
+      mountPath: /config
+  containers:
+  - name: api
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo api started with $(cat /config/app.env); sleep infinity"]
+    volumeMounts:
+    - name: config
+      mountPath: /config

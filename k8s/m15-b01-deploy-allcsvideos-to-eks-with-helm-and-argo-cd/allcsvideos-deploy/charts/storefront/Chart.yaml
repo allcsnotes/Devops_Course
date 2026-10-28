@@ -1,0 +1,6 @@
+apiVersion: v2
+name: storefront
+description: allcsvideos storefront (podinfo stands in for the web app)
+type: application
+version: 0.1.0
+appVersion: "6.14.1"

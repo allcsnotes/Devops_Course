@@ -1,0 +1,117 @@
+# allcsvideos: three small services, one image (SERVICE and APP_VERSION pick the name and version)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: storefront
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: storefront
+        version: v1
+    spec:
+      containers:
+      - name: app
+        image: svc:1.0
+        env:
+        - {name: SERVICE, value: storefront}
+        - {name: APP_VERSION, value: "1.0.0"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storefront
+spec:
+  selector:
+    app: storefront
+    version: v1
+  ports:
+  - {name: http, port: 80, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: api
+        version: v1
+    spec:
+      containers:
+      - name: app
+        image: svc:1.0
+        env:
+        - {name: SERVICE, value: api}
+        - {name: APP_VERSION, value: "1.0.0"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-v1
+spec:
+  selector:
+    app: api
+    version: v1
+  ports:
+  - {name: http, port: 80, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: copilot
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: copilot
+        version: v1
+    spec:
+      containers:
+      - name: app
+        image: svc:1.0
+        env:
+        - {name: SERVICE, value: copilot}
+        - {name: APP_VERSION, value: "1.0.0"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot
+spec:
+  selector:
+    app: copilot
+    version: v1
+  ports:
+  - {name: http, port: 80, targetPort: http}

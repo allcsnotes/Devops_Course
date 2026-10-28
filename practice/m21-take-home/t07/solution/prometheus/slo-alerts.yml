@@ -1,0 +1,44 @@
+# Multi-window, multi-burn-rate alerts (the SRE workbook pattern). 0.001 = the error budget of a 99.9% SLO.
+# Each pair needs the long window (is it significant?) AND the short window (is it still happening?).
+groups:
+  - name: catalog-slo-alerts
+    rules:
+      - alert: CatalogErrorBudgetBurn1h
+        # 14.4x: 2% of a 30-day budget gone in 1 hour
+        expr: job:slo_errors_per_request:ratio_rate1h > (14.4 * 0.001) and job:slo_errors_per_request:ratio_rate5m > (14.4 * 0.001)
+        for: 2m
+        labels: {severity: page, team: platform, window: 1h}
+        annotations:
+          summary: "catalog is burning its 30-day error budget fast"
+          description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+          runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      - alert: CatalogErrorBudgetBurn6h
+        # 6x: 5% of the budget gone in 6 hours
+        expr: job:slo_errors_per_request:ratio_rate6h > (6 * 0.001) and job:slo_errors_per_request:ratio_rate30m > (6 * 0.001)
+        for: 2m
+        labels: {severity: page, team: platform, window: 6h}
+        annotations:
+          summary: "catalog is burning its 30-day error budget fast"
+          description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+          runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      - alert: CatalogErrorBudgetSlowBurn
+        # 3x over 1 day (10% of the budget), or 1x over 3 days (10%): a ticket, not a page
+        expr: |
+          (job:slo_errors_per_request:ratio_rate1d > (3 * 0.001) and job:slo_errors_per_request:ratio_rate2h > (3 * 0.001))
+          or
+          (job:slo_errors_per_request:ratio_rate3d > 0.001 and job:slo_errors_per_request:ratio_rate6h > 0.001)
+        for: 1h
+        labels: {severity: ticket, team: platform}
+        annotations:
+          summary: "catalog is slowly burning its 30-day error budget"
+          description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+          runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      - alert: CatalogScrapeMissing
+        # a dead target has no errors at all: without this, the SLO alerts above stay silent
+        expr: up{job="catalog"} == 0 or absent(up{job="catalog"})
+        for: 2m
+        labels: {severity: page, team: platform}
+        annotations:
+          summary: "Prometheus cannot scrape catalog"
+          description: "No catalog metrics for 2 minutes, so the SLO alerts cannot fire."
+          runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"

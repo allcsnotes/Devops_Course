@@ -1,0 +1,39 @@
+# The pipeline's identity in the cluster: a service account that may only change Deployments and Services in prod.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployer
+  namespace: prod
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployer
+  namespace: prod
+rules:
+- apiGroups: [apps]
+  resources: [deployments]
+  verbs: [get, list, watch, create, patch, update]
+- apiGroups: [apps]
+  resources: [replicasets]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [services]
+  verbs: [get, list, create, patch, update]
+- apiGroups: [""]
+  resources: [pods]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployer
+  namespace: prod
+subjects:
+- kind: ServiceAccount
+  name: deployer
+  namespace: prod
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io

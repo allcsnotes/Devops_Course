@@ -1,0 +1,8 @@
+options {
+    directory "/var/cache/bind";
+    recursion yes;
+    allow-recursion { 10.0.53.0/24; 127.0.0.1; };
+    listen-on-v6 { none; };
+    dnssec-validation no;      // the lab root is not signed
+    empty-zones-enable no;     // let 10.x reverse lookups through
+};

@@ -1,0 +1,35 @@
+# catalog-api in namespace shop, tuned: two new pods at a time, and readiness checked every 2 s from the start
+# (the app answers /healthz about 2 s after it starts, so a fixed 20 s delay only waited).
+apiVersion: v1
+kind: Namespace
+metadata: {name: shop}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: catalog-api, namespace: shop}
+spec:
+  replicas: 4
+  strategy:
+    rollingUpdate: {maxSurge: 2, maxUnavailable: 0}
+  selector: {matchLabels: {app: catalog-api}}
+  template:
+    metadata: {labels: {app: catalog-api}}
+    spec:
+      containers:
+      - name: api
+        image: catalog-api:1.5.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - {name: OTEL_TRACES_EXPORTER, value: none}
+        - {name: OTEL_METRICS_EXPORTER, value: none}
+        - {name: OTEL_LOGS_EXPORTER, value: none}
+        - {name: TZ, value: "IST-5:30"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 2
+          failureThreshold: 3
+        resources:
+          requests: {cpu: 50m, memory: 96Mi}
+          limits: {memory: 192Mi}

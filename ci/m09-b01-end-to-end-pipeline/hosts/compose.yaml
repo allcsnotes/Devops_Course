@@ -1,0 +1,38 @@
+# /srv/app/compose.yaml : ONE colour of the allcsvideos release (docker compose -p blue ... / -p green ...).
+# The same file on staging-01 and prod-01. The deploy agent fills in the images and the colour (release.<colour>.env).
+x-hardened: &hardened                  # M07-L03 rules, as in the platform's own compose.yaml
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  labels: {course: devops}
+
+services:
+  copilot:
+    <<: *hardened
+    image: ${COPILOT_IMAGE}                         # ghcr.io/<owner>/copilot@sha256:...  (always a digest)
+    env_file:
+      - secrets/db.env                              # DATABASE_URL, REDIS_URL (made on the host, never in Git)
+      - app.${COLOUR}.env                           # app settings: arrive from the pipeline with each deploy
+      - host.env                                    # APP_ENV: the host decides which environment it is
+    environment:
+      APP_COLOUR: ${COLOUR}
+      IMAGE_DIGEST: ${COPILOT_DIGEST}
+      STOREFRONT_DIGEST: ${STOREFRONT_DIGEST}
+    networks: [default, data]
+    mem_limit: 256m
+
+  storefront:
+    <<: *hardened
+    image: ${STOREFRONT_IMAGE}                      # .../storefront@sha256:...
+    depends_on:
+      copilot: {condition: service_healthy}
+    networks:
+      default: {}                                   # this colour only: storefront -> its own copilot
+      edge: {ipv4_address: "${WEB_IP}"}             # the load balancer's network (blue .11, green .21)
+    mem_limit: 64m
+
+networks:
+  edge: {external: true}                            # lb + both storefronts
+  data: {external: true}                            # PostgreSQL + Redis, shared by both colours

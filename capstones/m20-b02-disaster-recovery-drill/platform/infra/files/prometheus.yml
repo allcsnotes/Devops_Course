@@ -1,0 +1,9 @@
+# Prometheus for allcsvideos production (metrics history is NOT backed up: after a disaster it starts empty)
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: students                 # the users' view: every request the simulated students sent
+    static_configs: [{targets: ["10.0.202.9:9100"]}]
+  - job_name: bucket                   # the off-site bucket: how fresh is the newest WAL file / snapshot / base backup?
+    static_configs: [{targets: ["10.0.202.6:9000"]}]

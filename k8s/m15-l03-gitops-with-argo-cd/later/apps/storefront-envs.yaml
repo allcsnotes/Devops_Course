@@ -1,0 +1,34 @@
+# One template, one Application per list element: storefront-dev and storefront-staging.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: storefront-envs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - list:
+      elements:
+      - env: dev
+      - env: staging
+  template:
+    metadata:
+      name: 'storefront-{{.env}}'
+      labels:
+        course: devops
+    spec:
+      project: default
+      source:
+        repoURL: http://gitea:3000/allcsvideos/allcsvideos-deploy.git
+        targetRevision: main
+        path: 'storefront/overlays/{{.env}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'allcsvideos-{{.env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

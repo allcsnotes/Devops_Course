@@ -1,0 +1,6 @@
+apiVersion: v2
+name: allcs-api
+description: allcsvideos catalog API (the same code the VM fleet runs)
+type: application
+version: 0.3.0
+appVersion: "2.4.0"

@@ -1,0 +1,20 @@
+# the allcsvideos API as it ran at 2 a.m.: three replicas, no probes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: health-api:1.0.0
+        ports:
+        - containerPort: 8080

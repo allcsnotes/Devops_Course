@@ -1,0 +1,27 @@
+# staged on purpose: the API with a 40-second warm-up and an impatient liveness probe
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warm
+  template:
+    metadata:
+      labels:
+        app: warm
+    spec:
+      containers:
+      - name: api
+        image: health-api:1.0.0
+        env:
+        - name: STARTUP_SECONDS
+          value: "40"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 3

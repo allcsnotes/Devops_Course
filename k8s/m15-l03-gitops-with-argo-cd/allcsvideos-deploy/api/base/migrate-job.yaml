@@ -1,0 +1,18 @@
+# Runs before every sync (PreSync hook): the schema change lands before the new pods start.
+# A lab stand-in for a real migration tool (Flyway in M07-B01): it prints, waits 3 s and exits 0.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: allcsvideos/api:1.4.0
+        command: ["python", "-c", "import os, time; print('migrating schema for api', os.environ['APP_VERSION']); time.sleep(3); print('migration done')"]

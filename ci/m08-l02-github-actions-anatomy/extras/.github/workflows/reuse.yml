@@ -1,0 +1,19 @@
+# reuse.yml (M08-L02 extra): a reusable workflow. Called with "uses:" from a job in two.yml; passes an output back.
+name: reuse
+on:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+    outputs:
+      result:
+        value: ${{ jobs.r.outputs.res }}
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    outputs:
+      res: ${{ steps.s.outputs.res }}
+    steps:
+      - id: s
+        run: echo "res=built-${{ inputs.target }}" >> "$GITHUB_OUTPUT"

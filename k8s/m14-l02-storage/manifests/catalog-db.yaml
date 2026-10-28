@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-db
+  template:
+    metadata:
+      labels:
+        app: catalog-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:18.6-alpine3.24
+        env:
+        - name: POSTGRES_USER
+          value: catalog
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-creds
+              key: password
+        readinessProbe:            # ready once Postgres accepts TCP connections (probes: lesson 3)
+          exec:
+            command: ["pg_isready", "-U", "catalog", "-h", "127.0.0.1"]
+          periodSeconds: 2
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+        - name: seed
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: seed
+        configMap:
+          name: catalog-seed

@@ -1,0 +1,4 @@
+Lab-only Gitea accounts for the M18-B01 lab (FAKE passwords, used only inside this throwaway lab, never real):
+asha     asha@example.com     site admin, owner of the allcsvideos organisation   password: fake-lab-pass-asha
+priya    priya@example.com    developer (team devs: write)                        password: fake-lab-pass-priya
+rahul    rahul@example.com    senior SRE (team devs: write)                       password: fake-lab-pass-rahul

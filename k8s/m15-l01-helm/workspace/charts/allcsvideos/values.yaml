@@ -1,0 +1,7 @@
+# values for a subchart live under its name (or alias)
+allcsvideos-api:
+  replicaCount: 2
+status-page:
+  enabled: true
+  ui:
+    message: "allcsvideos status"

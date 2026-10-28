@@ -1,0 +1,7 @@
+---
+# defaults: the knobs. Lowest precedence, so group_vars and host_vars can override them.
+common_packages: [curl, tree, logrotate, unattended-upgrades, systemd-timesyncd]
+common_timezone: Etc/UTC
+common_ntp_servers: [ntp.ubuntu.com]
+# admin accounts: list of {name, comment, key}
+admin_users: []

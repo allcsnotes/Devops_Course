@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allcs
+---
+# catalog-eso: the service account ESO logs in to Vault as (Vault's Kubernetes auth, role "catalog")
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalog-eso
+  namespace: allcs

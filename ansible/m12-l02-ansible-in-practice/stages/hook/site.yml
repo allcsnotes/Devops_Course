@@ -1,0 +1,292 @@
+---
+# site.yml: everything for the allcsvideos servers, in one file.
+# (STAGED for the M12-L02 hook: lesson one's web.yml, a few weeks of copy-paste later.)
+
+- name: Base setup for every server
+  hosts: all
+  become: true
+  tasks:
+    - name: Install curl
+      ansible.builtin.apt:
+        name: curl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install tree
+      ansible.builtin.apt:
+        name: tree
+        state: present
+
+    - name: Install logrotate
+      ansible.builtin.apt:
+        name: logrotate
+        state: present
+
+    - name: Create the deploy user
+      ansible.builtin.user:
+        name: deploy
+        shell: /bin/bash
+        comment: CI deploy user
+
+    - name: Create the priya user
+      ansible.builtin.user:
+        name: priya
+        shell: /bin/bash
+        comment: Priya (developer)
+        groups: adm
+        append: true
+
+    - name: Harden sshd
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/10-hardening.conf
+        content: |
+          PermitRootLogin no
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          AllowUsers asha deploy priya
+        mode: "0644"
+
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
+- name: Set up web-01
+  hosts: web-01
+  become: true
+  tasks:
+    - name: Install nginx on web-01
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Write nginx.conf on web-01
+      ansible.builtin.copy:
+        dest: /etc/nginx/nginx.conf
+        content: |
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          events {
+              worker_connections 768;
+          }
+          http {
+              include /etc/nginx/mime.types;
+              server_tokens off;
+              upstream api {
+                  server 10.0.122.31:8080;
+                  server 10.0.122.32:8080;
+              }
+              server {
+                  listen 80 default_server;
+                  server_name www.allcsvideos.test;
+                  root /var/www/allcsvideos;
+                  location = /health {
+                      default_type application/json;
+                      return 200 '{"status":"ok","host":"web-01"}\n';
+                  }
+                  location /api/ {
+                      proxy_pass http://api;
+                  }
+              }
+          }
+        mode: "0644"
+
+    - name: Create the web root on web-01
+      ansible.builtin.file:
+        path: /var/www/allcsvideos
+        state: directory
+        mode: "0755"
+
+    - name: Home page on web-01
+      ansible.builtin.copy:
+        dest: /var/www/allcsvideos/index.html
+        content: |
+          <h1>allcsvideos</h1>
+          <p>Served by web-01</p>
+        mode: "0644"
+
+    - name: Restart nginx on web-01
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+        enabled: true
+
+- name: Set up web-02
+  hosts: web-02
+  become: true
+  tasks:
+    - name: Install nginx on web-02
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+
+    - name: Write nginx.conf on web-02
+      ansible.builtin.copy:
+        dest: /etc/nginx/nginx.conf
+        content: |
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          events {
+              worker_connections 768;
+          }
+          http {
+              include /etc/nginx/mime.types;
+              server_tokens off;
+              upstream api {
+                  server 10.0.122.31:8080;
+                  server 10.0.122.32:8080;
+              }
+              server {
+                  listen 80 default_server;
+                  server_name www.allcsvideos.test;
+                  root /var/www/allcsvideos;
+                  location = /health {
+                      default_type application/json;
+                      return 200 '{"status":"ok","host":"web-02"}\n';
+                  }
+                  location /api/ {
+                      proxy_pass http://api;
+                  }
+              }
+          }
+        mode: "0644"
+
+    - name: Create the web root on web-02
+      ansible.builtin.file:
+        path: /var/www/allcsvideos
+        state: directory
+        mode: "0755"
+
+    - name: Home page on web-02
+      ansible.builtin.copy:
+        dest: /var/www/allcsvideos/index.html
+        content: |
+          <h1>allcsvideos</h1>
+          <p>Served by web-02</p>
+        mode: "0644"
+
+    - name: Restart nginx on web-02
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+        enabled: true
+
+- name: App settings on the web servers
+  hosts: web
+  become: true
+  vars:
+    db_host: db-01
+    db_name: allcsvideos
+    db_user: allcs_app
+    db_password: demo-db-password-123   # FAKE demo value
+  tasks:
+    - name: Create /etc/allcsvideos
+      ansible.builtin.file:
+        path: /etc/allcsvideos
+        state: directory
+        mode: "0755"
+
+    - name: Write app.env
+      ansible.builtin.copy:
+        dest: /etc/allcsvideos/app.env
+        content: |
+          APP_ENV=production
+          DB_HOST={{ db_host }}
+          DB_NAME={{ db_name }}
+          DB_USER={{ db_user }}
+          DB_PASSWORD={{ db_password }}
+        mode: "0644"
+
+- name: Health-check toolkit on every server
+  hosts: all
+  become: true
+  tasks:
+    - name: Create the hc user
+      ansible.builtin.user:
+        name: hc
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+
+    - name: Create /opt/hc/bin
+      ansible.builtin.file:
+        path: /opt/hc/bin
+        state: directory
+        mode: "0755"
+
+    - name: Create /opt/hc/lib
+      ansible.builtin.file:
+        path: /opt/hc/lib
+        state: directory
+        mode: "0755"
+
+    - name: Copy bin/hc
+      ansible.builtin.copy:
+        src: hc/bin/hc
+        dest: /opt/hc/bin/hc
+        mode: "0755"
+
+    - name: Copy lib/checks.sh
+      ansible.builtin.copy:
+        src: hc/lib/checks.sh
+        dest: /opt/hc/lib/checks.sh
+        mode: "0644"
+
+    - name: Copy lib/http_check.py
+      ansible.builtin.copy:
+        src: hc/lib/http_check.py
+        dest: /opt/hc/lib/http_check.py
+        mode: "0644"
+
+    - name: Copy lib/report.py
+      ansible.builtin.copy:
+        src: hc/lib/report.py
+        dest: /opt/hc/lib/report.py
+        mode: "0644"
+
+    - name: Link hc into the PATH
+      ansible.builtin.file:
+        src: /opt/hc/bin/hc
+        dest: /usr/local/bin/hc
+        state: link
+
+    - name: Create /etc/hc
+      ansible.builtin.file:
+        path: /etc/hc
+        state: directory
+        mode: "0755"
+
+    - name: Copy hc.conf
+      ansible.builtin.copy:
+        src: hc/conf/hc.conf
+        dest: /etc/hc/hc.conf
+        group: hc
+        mode: "0640"
+
+    - name: Copy hc.service
+      ansible.builtin.copy:
+        src: hc/systemd/hc.service
+        dest: /etc/systemd/system/hc.service
+        mode: "0644"
+
+    - name: Copy hc.timer
+      ansible.builtin.copy:
+        src: hc/systemd/hc.timer
+        dest: /etc/systemd/system/hc.timer
+        mode: "0644"
+
+    - name: Copy the logrotate rule
+      ansible.builtin.copy:
+        src: hc/logrotate/hc
+        dest: /etc/logrotate.d/hc
+        mode: "0644"
+
+    - name: Start the hc timer
+      ansible.builtin.systemd_service:
+        name: hc.timer
+        state: started
+        enabled: true
+        daemon_reload: true

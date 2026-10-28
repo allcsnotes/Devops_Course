@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: allcsvideos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: api:1.5.0
+        env:
+        - name: LOG_LEVEL              # one key, picked by name
+          valueFrom:
+            configMapKeyRef:
+              name: api-logging
+              key: LOG_LEVEL
+        envFrom:                       # every key becomes a variable
+        - configMapRef:
+            name: api-env
+        volumeMounts:
+        - name: features               # each key becomes a file
+          mountPath: /etc/allcsvideos
+          readOnly: true
+      volumes:
+      - name: features
+        configMap:
+          name: api-features

@@ -1,0 +1,18 @@
+# Core Argo CD only: 3 pods (sandbox allows 3 pods per namespace)
+dex: { enabled: false }
+notifications: { enabled: false }
+applicationSet: { replicas: 0 }
+server: { replicas: 0 }
+redisSecretInit: { enabled: false }
+controller:
+  resources:
+    requests: { cpu: 100m, memory: 200Mi }
+    limits: { cpu: 250m, memory: 400Mi }
+repoServer:
+  resources:
+    requests: { cpu: 50m, memory: 200Mi }
+    limits: { cpu: 250m, memory: 400Mi }
+redis:
+  resources:
+    requests: { cpu: 25m, memory: 64Mi }
+    limits: { cpu: 100m, memory: 128Mi }

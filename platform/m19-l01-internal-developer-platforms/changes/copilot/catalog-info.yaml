@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: course-copilot
+  description: Keyword answers from a course index (FastAPI, no AI model in this stack)
+  tags: [python, fastapi]
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:courses
+  system: allcsvideos
+  consumesApis: [catalog-api]

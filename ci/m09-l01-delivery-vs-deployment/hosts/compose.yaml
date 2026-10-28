@@ -1,0 +1,11 @@
+# /srv/app/compose.yaml : the SAME file on staging-01 and prod-01. What differs per environment lives in app.env.
+name: copilot
+services:
+  copilot:
+    image: ${IMAGE}                 # ghcr.io/<owner>/course-copilot@sha256:... (set by the deploy agent)
+    env_file: app.env               # per-environment config (APP_ENV=staging / production)
+    environment:
+      IMAGE_DIGEST: ${IMAGE_DIGEST} # so /version can say exactly which build is running
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

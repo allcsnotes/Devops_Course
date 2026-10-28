@@ -1,0 +1,11 @@
+# Priya's first Dockerfile: production settings baked into the image (the hook - don't do this)
+FROM python:3.13.16-alpine3.23
+LABEL course=devops
+ENV APP_VERSION=1.4.0 PYTHONUNBUFFERED=1
+ENV APP_ENV=production LOG_LEVEL=WARNING
+ENV DB_HOST=db.prod.allcsvideos.internal DB_USER=api
+ENV API_BASE_URL=https://api.allcsvideos.com
+WORKDIR /app
+COPY app.py .
+USER 10001
+CMD ["python", "app.py"]

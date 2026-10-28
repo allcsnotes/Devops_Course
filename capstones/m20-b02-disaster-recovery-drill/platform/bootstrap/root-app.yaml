@@ -1,0 +1,17 @@
+# root-app.yaml: the ONE thing applied by hand. Argo CD then builds everything under apps/root from Git (app of apps).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://10.0.202.5:3000/allcsvideos/platform.git
+    targetRevision: main
+    path: apps/root
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}

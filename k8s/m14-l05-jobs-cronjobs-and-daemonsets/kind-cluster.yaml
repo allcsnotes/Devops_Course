@@ -1,0 +1,27 @@
+# kind-cluster.yaml (M14-L05): one control-plane node and two workers, no host port mappings.
+# Leader election is switched off for the controller manager and the scheduler: with a single control plane
+# there is nothing to elect, and on a busy laptop a lost lease made both restart in a loop. Lab only;
+# highly available control planes need leader election.
+# Create:  kind create cluster --config kind-cluster.yaml
+# Delete:  kind delete cluster --name lab
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lab
+nodes:
+- role: control-plane
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    controllerManager:
+      extraArgs:
+      - name: leader-elect
+        value: "false"
+    scheduler:
+      extraArgs:
+      - name: leader-elect
+        value: "false"
+- role: worker
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+- role: worker
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

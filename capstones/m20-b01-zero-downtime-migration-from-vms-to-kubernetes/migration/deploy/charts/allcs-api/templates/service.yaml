@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: allcs-api
+spec:
+  type: NodePort                                     # the edge load balancer sends its share here
+  selector: {app: allcs-api}
+  ports:
+  - {name: http, port: 80, targetPort: http, nodePort: {{ .Values.service.nodePort }}}

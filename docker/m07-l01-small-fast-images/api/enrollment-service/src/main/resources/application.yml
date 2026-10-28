@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: enrollment-service
+  config:
+    import: optional:configtree:/etc/config/   # the ConfigMap: one file per key
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:5432/enrollment
+    username: enrollment
+    # password: SPRING_DATASOURCE_PASSWORD, from the Secret
+    hikari:
+      initialization-fail-timeout: 60000   # ms: on a fresh cluster, wait for Postgres
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:kafka:9092}   # the Service in this namespace
+    consumer:
+      auto-offset-reset: earliest
+      properties:
+        session.timeout.ms: 10000
+        heartbeat.interval.ms: 3000
+    producer:
+      properties:
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 3000
+        max.block.ms: 3000
+    listener:
+      observation-enabled: true
+  http:
+    clients:
+      imperative:
+        factory: jdk     # no hidden POST retry (M19-L04)
+    serviceclient:
+      catalog-service:
+        base-url: http://catalog:8080   # a Kubernetes Service name, not lb://
+        connect-timeout: 500ms
+        read-timeout: 2s
+server:
+  port: 8080
+  forward-headers-strategy: framework   # Location: /api/enrollments/1
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true          # info.* properties show in /actuator/info
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      otlp:
+        enabled: false     # no trace backend here: ids in logs only
+  opentelemetry:
+    map-environment-variables: false   # ignore OTEL_* (BuildKit sets them)
+  otlp:
+    metrics:
+      export:
+        enabled: false
+info:
+  version: ${APP_VERSION:dev}          # the git sha, from the image build
+  environment: ${app.environment:local}  # a string, not the configtree file
+saga:
+  step-timeout: 60s
+app:
+  jwt:
+    issuer: https://api.allcsvideos.com
+    audience: allcs-api
+    public-key: classpath:jwt/public.pem
+resilience4j:
+  circuitbreaker:
+    instances:
+      catalog:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        ignore-exceptions:
+          - com.allcs.enrollment.CourseNotFound
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN

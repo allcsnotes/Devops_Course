@@ -1,0 +1,26 @@
+# Lab private registry (registry:3.1.2) with basic auth, running on the worker node's own network as localhost:5001,
+# so the node's containerd pulls from it like from any private registry. Credentials are fake lab values.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: registry
+  namespace: registry
+  labels: {app: registry, course: devops}
+spec:
+  hostNetwork: true
+  nodeSelector:
+    kubernetes.io/hostname: lab-worker
+  containers:
+  - name: registry
+    image: registry:3.1.2
+    env:
+    - {name: REGISTRY_HTTP_ADDR, value: "127.0.0.1:5001"}
+    - {name: REGISTRY_HTTP_DEBUG_ADDR, value: "127.0.0.1:5002"}   # the image default is :5001
+    - {name: REGISTRY_AUTH, value: htpasswd}
+    - {name: REGISTRY_AUTH_HTPASSWD_REALM, value: allcsvideos-lab}
+    - {name: REGISTRY_AUTH_HTPASSWD_PATH, value: /auth/htpasswd}
+    volumeMounts:
+    - {name: auth, mountPath: /auth}
+  volumes:
+  - name: auth
+    secret: {secretName: registry-htpasswd}

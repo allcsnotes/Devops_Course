@@ -1,0 +1,15 @@
+# the same inventory, in YAML
+all:
+  vars:
+    ansible_user: asha
+  children:
+    web:
+      hosts:
+        web-01:
+          ansible_host: 10.0.12.11
+        web-02:
+          ansible_host: 10.0.12.12
+    db:
+      hosts:
+        db-01:
+          ansible_host: 10.0.12.21

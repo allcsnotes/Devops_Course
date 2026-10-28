@@ -1,0 +1,7 @@
+   namelookup:  %{time_namelookup}s\n
+      connect:  %{time_connect}s\n
+   appconnect:  %{time_appconnect}s\n
+  pretransfer:  %{time_pretransfer}s\n
+starttransfer:  %{time_starttransfer}s\n
+        total:  %{time_total}s\n
+         code:  %{http_code}\n

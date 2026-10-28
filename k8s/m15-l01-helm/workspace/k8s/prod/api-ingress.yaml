@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  labels: {app: api, course: devops}
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: allcsvideos.test
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service: {name: api, port: {name: http}}

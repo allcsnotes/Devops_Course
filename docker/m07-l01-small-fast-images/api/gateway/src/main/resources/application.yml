@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: gateway
+  config:
+    import: optional:configtree:/etc/config/   # the ConfigMap: one file per key
+  reactor:
+    context-propagation: auto      # trace ids in reactive logs (M19-L03)
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          trusted-proxies: 127\.0\.0\.1|0:0:0:0:0:0:0:1
+          httpclient:
+            connect-timeout: 1000
+            response-timeout: 3s
+          routes:
+            - id: catalog
+              uri: http://catalog:8080       # Service DNS replaces Eureka
+              predicates:
+                - Path=/api/courses/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: catalog
+                    fallbackUri: forward:/fallback/catalog
+                - name: Retry
+                  args:
+                    retries: 2
+                    methods: GET
+                    exceptions: java.io.IOException
+            - id: enrollment
+              uri: http://enrollment:8080
+              predicates:
+                - Path=/api/enrollments/**
+              filters:
+                - StripPrefix=1
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userKeyResolver}"
+resilience4j:
+  timelimiter:
+    instances:
+      catalog:
+        timeout-duration: 5s       # default 1 s (M19-L03)
+app:
+  jwt:
+    issuer: https://api.allcsvideos.com
+    audience: allcs-api
+    public-key: classpath:jwt/public.pem
+server:
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true          # info.* properties show in /actuator/info
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      otlp:
+        enabled: false     # no trace backend here: ids in logs only
+  opentelemetry:
+    map-environment-variables: false   # ignore OTEL_* (BuildKit sets them)
+  otlp:
+    metrics:
+      export:
+        enabled: false
+info:
+  version: ${APP_VERSION:dev}          # the git sha, from the image build
+  environment: ${app.environment:local}  # a string, not the configtree file

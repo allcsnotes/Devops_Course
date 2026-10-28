@@ -1,0 +1,12 @@
+# prod-ish: docker compose -f compose.yaml -f compose.prod.yaml up -d
+services:
+  api:
+    environment:
+      LOG_LEVEL: warning
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+  storefront:
+    restart: always

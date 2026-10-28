@@ -1,0 +1,16 @@
+# Gitea runner (gitea/runner:5.1.1) config for the optional Module 8 local lab. Only the options we change;
+# everything else keeps its default (see: docker run --rm --entrypoint "" gitea/runner:5.1.1 gitea-runner config generate).
+log:
+  level: info
+runner:
+  file: /data/.runner          # the registration result (kept in the runner's data volume)
+  capacity: 1                  # one job at a time
+  # runs-on: ubuntu-latest  ->  a fresh container from Gitea's official runner image (Ubuntu 24.04), pinned
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: false
+container:
+  network: ci-lab              # job containers join the lab network, so they reach http://gitea:3000
+  options: --label course=devops
+  docker_host: "-"             # the runner uses Docker, but never hands the Docker socket to a job

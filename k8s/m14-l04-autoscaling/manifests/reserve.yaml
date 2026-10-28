@@ -1,0 +1,24 @@
+# staged: pods that each reserve 4 CPUs, more than the two workers can hold
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reserve
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: reserve
+  template:
+    metadata:
+      labels:
+        app: reserve
+    spec:
+      containers:
+      - name: api
+        image: scale-api:1.0
+        resources:
+          requests:
+            cpu: "4"
+            memory: 64Mi
+          limits:
+            memory: 128Mi

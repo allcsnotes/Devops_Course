@@ -1,0 +1,4 @@
+{"ts": "04:19:58", "epoch": 1792622998.22, "event": "triggered", "page": 1, "alert": "CatalogErrorBudgetBurn", "starts_at": "2026-10-21T22:49:48.122Z", "summary": "catalog-api: 19.73% of requests failing (SLO 99.5%)"}
+{"ts": "04:19:58", "epoch": 1792622998.229, "event": "notified", "page": 1, "who": "asha", "role": "primary"}
+{"ts": "04:20:19", "epoch": 1792623019.93, "event": "acknowledged", "page": 1, "who": "asha"}
+{"ts": "04:21:58", "epoch": 1792623118.161, "event": "resolved", "page": 1, "alert": "CatalogErrorBudgetBurn", "ends_at": "2026-10-21T22:51:48.122Z"}

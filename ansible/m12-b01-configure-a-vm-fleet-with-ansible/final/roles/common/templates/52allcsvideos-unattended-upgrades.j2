@@ -1,0 +1,4 @@
+// {{ ansible_managed }}
+// security updates only (the default origins), never reboot on our own: reboots are planned
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";

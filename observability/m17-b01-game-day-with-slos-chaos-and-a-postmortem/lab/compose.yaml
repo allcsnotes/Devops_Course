@@ -1,0 +1,131 @@
+# allcsvideos game-day lab (M17 build): two API replicas behind nginx, Course Copilot, PostgreSQL, simulated students,
+# Prometheus with the SLO rules, Alertmanager, the lab pager and status page, Grafana. Every image pinned.
+name: gameday-lab
+
+x-labels: &labels
+  course: devops
+x-api: &api
+  image: gameday-lab/api:${API_VERSION:-1.0}
+  environment:
+    DB_PASSWORD: demo-password-123              # FAKE lab password
+  volumes: ["./flags:/flags:ro"]                # feature flags the ops team can flip
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+    interval: 3s
+    retries: 20
+  depends_on: {db: {condition: service_healthy}}
+  cpus: 0.5
+  mem_limit: 128m
+  restart: unless-stopped
+  labels: *labels
+
+services:
+  db:
+    image: postgres:18.6-alpine3.24
+    environment:
+      POSTGRES_USER: allcs
+      POSTGRES_DB: catalog
+      POSTGRES_PASSWORD: demo-password-123      # FAKE lab password
+      TZ: Asia/Kolkata
+    volumes: ["./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro", "pgdata:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "allcs", "-d", "catalog"]
+      interval: 2s
+      retries: 60
+    cpus: 0.5
+    mem_limit: 256m
+    labels: *labels
+
+  api1: {<<: *api, hostname: api1}
+  api2: {<<: *api, hostname: api2}
+
+  copilot:                                      # Course Copilot: a keyword service, no AI model
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/copilot.py"]
+    volumes: ["./copilot:/srv:ro"]
+    cpus: 0.25
+    mem_limit: 64m
+    labels: *labels
+
+  lb:
+    image: nginx:1.29.8-alpine
+    command: ["nginx", "-c", "/etc/nginx/lab/nginx.conf", "-g", "daemon off;"]
+    volumes: ["./nginx:/etc/nginx/lab:ro"]
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [api1, api2]
+    cpus: 0.25
+    mem_limit: 32m
+    labels: *labels
+
+  students:                                     # simulated students, 20 requests a second (fake users)
+    image: gameday-lab/api:1.0
+    command: ["python", "-u", "/load/students.py"]
+    environment: {RATE: "20", TARGET: "http://lb"}
+    volumes: ["./load:/load:ro", "./runs:/runs"]
+    depends_on: [lb]
+    cpus: 0.5
+    mem_limit: 128m
+    labels: *labels
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--web.enable-lifecycle"]
+    volumes: ["./prometheus:/etc/prometheus:ro", "tsdb:/prometheus"]
+    ports: ["127.0.0.1:9090:9090"]
+    cpus: 0.5
+    mem_limit: 256m
+    labels: *labels
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes: ["./alertmanager:/etc/alertmanager:ro"]
+    ports: ["127.0.0.1:9093:9093"]
+    cpus: 0.25
+    mem_limit: 64m
+    labels: *labels
+
+  pager:                                        # lab stand-in for PagerDuty or Opsgenie (lesson 2)
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/pager.py"]
+    environment: {PRIMARY: asha, SECONDARY: priya, ESCALATE_AFTER: "120", TZ: IST-5:30}
+    volumes: ["./pager:/srv:ro", "./incident:/data"]
+    ports: ["127.0.0.1:8081:8080"]
+    cpus: 0.25
+    mem_limit: 48m
+    labels: *labels
+
+  status:                                       # lab status page (lesson 2)
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/status.py"]
+    environment: {TZ: IST-5:30}
+    volumes: ["./status:/srv:ro", "./incident:/data"]
+    ports: ["127.0.0.1:8082:8080"]
+    cpus: 0.25
+    mem_limit: 48m
+    labels: *labels
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"        # lab only: no login screen
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: Asia/Kolkata
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["127.0.0.1:3000:3000"]
+    cpus: 0.5
+    mem_limit: 768m
+    labels: *labels
+
+volumes:
+  pgdata: {labels: *labels}
+  tsdb: {labels: *labels}
+
+networks:
+  default:
+    labels: *labels

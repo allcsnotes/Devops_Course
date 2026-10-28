@@ -1,0 +1,29 @@
+# staged: a leak that grows 2 MiB a second against a 64 MiB limit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thumbnailer
+  labels: {app: thumbnailer, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: thumbnailer}
+  template:
+    metadata:
+      labels: {app: thumbnailer, course: devops}
+    spec:
+      containers:
+      - name: thumbnailer
+        image: catalog-api:2.5.0
+        command: ["python3", "-u", "-c"]
+        args:
+        - |
+          import time
+          cache = []
+          while True:
+              cache.append(bytearray(2 * 1024 * 1024))
+              print(f"thumbnail cache: {2 * len(cache)} MiB", flush=True)
+              time.sleep(1)
+        resources:
+          requests: {cpu: 10m, memory: 64Mi}
+          limits: {memory: 64Mi}

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stubborn
+  labels:
+    course: devops
+spec:
+  terminationGracePeriodSeconds: 10
+  containers:
+  - name: app
+    image: python:3.13.16-alpine3.23
+    command: ["python3", "-u", "-c"]
+    args:
+    - |
+      import signal, time
+      def log(m): print(time.strftime('%H:%M:%S'), m)
+      signal.signal(signal.SIGTERM, lambda s, f: log('SIGTERM received, ignoring it'))
+      log('app started')
+      while True: time.sleep(1)

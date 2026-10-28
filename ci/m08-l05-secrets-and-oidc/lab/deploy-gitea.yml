@@ -1,0 +1,40 @@
+# deploy-gitea.yml (M08-L05, OPTIONAL local lab only): the deploy workflow exactly as in the video, against the
+# lab token service and Vault. Save it in your Gitea repo as .github/workflows/deploy.yml (see lab/README.md).
+name: deploy
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  id-token: write   # on GitHub: this job may request an OIDC token
+env:
+  # LAB STAND-IN: Gitea 28.1.0 issues no OIDC tokens, so the lab token service
+  # plays the part of GitHub's. On GitHub: ACTIONS_ID_TOKEN_REQUEST_URL / _TOKEN.
+  ID_TOKEN_URL: http://token-service:8080/token?audience=vault.lab&repository=${{ github.repository }}
+  VAULT_ADDR: http://vault:8200
+  VAULT_ROLE: ops-deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get a short-lived ID token
+        run: |
+          JWT=$(curl -sf -H "Authorization: bearer $ACTIONS_RUNTIME_TOKEN" "$ID_TOKEN_URL" | jq -r .value)
+          echo "::add-mask::$JWT"
+          echo "JWT=$JWT" >> "$GITHUB_ENV"
+      - name: Show its claims (the lab token only)
+        run: |
+          for i in 1 2; do
+            s=$(echo "$JWT" | cut -d. -f$i | tr '_-' '/+')
+            while [ $(( ${#s} % 4 )) -ne 0 ]; do s="$s="; done
+            echo "$s" | base64 -d | jq .
+          done
+      - name: Exchange it for a Vault token, read the deploy secret
+        run: |
+          R=$(curl -s -X POST "$VAULT_ADDR/v1/auth/jwt/login" -d "{\"role\":\"$VAULT_ROLE\",\"jwt\":\"$JWT\"}")
+          if echo "$R" | jq -e .errors >/dev/null; then echo "$R" | jq -r '.errors[]'; exit 1; fi
+          VT=$(echo "$R" | jq -r .auth.client_token); echo "::add-mask::$VT"
+          echo "$R" | jq -c '{policies: .auth.policies, lease_seconds: .auth.lease_duration}'
+          DB=$(curl -s -H "X-Vault-Token: $VT" "$VAULT_ADDR/v1/secret/data/allcsvideos/deploy" | jq -r .data.data.db_password)
+          echo "::add-mask::$DB"
+          echo "db_password: $DB (${#DB} characters)"

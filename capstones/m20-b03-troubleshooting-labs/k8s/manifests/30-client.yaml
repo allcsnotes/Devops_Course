@@ -1,0 +1,13 @@
+# client: a small busybox pod inside the cluster, used as "the user" for in-cluster checks (wget)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: allcs
+spec:
+  containers:
+  - name: client
+    image: busybox:1.37.0
+    command: ["sleep", "86400"]
+    resources:
+      limits: {memory: 16Mi}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# cert-check: days until a site's TLS certificate expires, one hc-style line.
+# usage: cert-check HOST [WARN_DAYS] [CRIT_DAYS]
+# exit codes: 0 OK, 1 WARN, 2 CRIT, 3 UNKNOWN (like the hc toolkit)
+set -euo pipefail
+host=$1 warn=${2:-21} crit=${3:-7}
+
+# ask the live server, not the file on disk: this also catches a missed reload
+if ! end=$(openssl s_client -connect "$host:443" -servername "$host" \
+             </dev/null 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null); then
+  printf 'UNKNOWN\tcert %s\tno certificate\n' "$host"; exit 3
+fi
+end=${end#notAfter=}
+left=$(( $(date -d "$end" +%s) - $(date +%s) ))
+days=$(( left / 86400 )); msg="$days days left"
+(( left > 0 )) || msg=EXPIRED
+
+if (( left <= 0 || days < crit )); then sev=CRIT code=2
+elif (( days < warn )); then sev=WARN code=1
+else sev=OK code=0; fi
+printf '%s\tcert %s\t%s (%s)\n' "$sev" "$host" "$msg" "$end"
+exit "$code"

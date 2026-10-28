@@ -1,0 +1,16 @@
+metadata:
+  id: "CKV2_ALLCS_1"
+  name: "Database security groups accept only other security groups, never CIDR ranges"
+  category: "NETWORKING"
+  severity: "CRITICAL"
+definition:
+  or:
+    - cond_type: attribute
+      resource_types: ["aws_security_group"]
+      attribute: "name"
+      operator: "not_ending_with"
+      value: "-db"
+    - cond_type: attribute
+      resource_types: ["aws_security_group"]
+      attribute: "ingress.*.cidr_blocks"
+      operator: "not_exists"

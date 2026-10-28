@@ -1,0 +1,13 @@
+#!/bin/bash
+# renew-cert: the lab's stand-in for "certbot renew". Issues a certificate for www.allcsvideos.test from the
+# LAB CA in /etc/allcs-ca (never use a hand-made CA in production). Usage: renew-cert [days]   (default 90)
+#   LAB_NOT_BEFORE / LAB_NOT_AFTER (YYYYMMDDHHMMSSZ) override the dates: break.sh 3 uses them to stage an expired cert.
+set -euo pipefail
+CA=/etc/allcs-ca; N=www.allcsvideos.test; OUT=/etc/nginx/tls; DAYS=${1:-90}
+install -d -m 755 $OUT
+openssl req -new -newkey rsa:2048 -nodes -keyout $OUT/$N.key -subj "/CN=$N" -out $CA/$N.csr 2>/dev/null
+dates=(-days "$DAYS"); [[ -n ${LAB_NOT_AFTER:-} ]] && dates=(-startdate "$LAB_NOT_BEFORE" -enddate "$LAB_NOT_AFTER")
+openssl ca -batch -config $CA/ca.cnf -notext "${dates[@]}" -in $CA/$N.csr -out $OUT/$N.crt \
+  -extfile <(printf 'subjectAltName=DNS:%s\nextendedKeyUsage=serverAuth\n' $N) 2>/dev/null
+chmod 600 $OUT/$N.key
+openssl x509 -in $OUT/$N.crt -noout -subject -enddate

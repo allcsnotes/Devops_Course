@@ -1,0 +1,13 @@
+37 firing alerts, 7 alert names, 3 services
+-> 1 incident
+
+incident 1: 37 alerts, first at 02:00:40, last at 02:02:55
+  storefront-bff  21 alerts  victim (calls catalog-api)
+                  HighLatency x8, HighErrorRate x6, UpstreamErrors x2, RequestsPilingUp x2, LatencySLOBreach x1, ErrorBudgetBurnSlow x1, ErrorBudgetBurnFast x1
+  catalog-api     10 alerts  probable origin
+                  HighLatency x4, HighErrorRate x2, LatencySLOBreach x1, ErrorBudgetBurnSlow x1, ErrorBudgetBurnFast x1, RequestsPilingUp x1
+  course-copilot   6 alerts  victim (calls catalog-api)
+                  ErrorBudgetBurnSlow x1, UpstreamErrors x1, HighLatency x1, LatencySLOBreach x1, HighErrorRate x1, ErrorBudgetBurnFast x1
+  changes in the hour before the first alert:
+    01:20:54  storefront-bff 2.3.1 by asha  (2386 s before)
+    02:00:00  catalog-api 1.5.0 by priya  (40 s before)  <- on the probable origin

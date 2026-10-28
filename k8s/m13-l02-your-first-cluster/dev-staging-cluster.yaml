@@ -1,0 +1,9 @@
+# dev-staging-cluster.yaml (M13-L02): a one-node cluster, used twice to stand in for "dev" and "staging".
+# kind removes the control-plane taint when there are no workers, so pods can run on this single node.
+#   kind create cluster --name lab-dev     --config dev-staging-cluster.yaml --kubeconfig ~/.kube/dev.yaml
+#   kind create cluster --name lab-staging --config dev-staging-cluster.yaml --kubeconfig ~/.kube/staging.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

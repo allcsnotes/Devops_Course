@@ -1,0 +1,8 @@
+; the lab root zone: who runs "." and which servers handle the TLDs below it
+$TTL 86400
+.                      IN SOA  root-ns.test. hostmaster.root-ns.test. ( 2026102001 1800 900 604800 86400 )
+.                      IN NS   root-ns.test.
+root-ns.test.          IN A    10.0.53.2
+test.                  IN NS   tld-ns.test.
+tld-ns.test.           IN A    10.0.53.3
+53.0.10.in-addr.arpa.  IN NS   ns1.allcsvideos.test.

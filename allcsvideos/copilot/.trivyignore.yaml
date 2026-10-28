@@ -1,0 +1,6 @@
+vulnerabilities:
+  - id: CVE-2026-16742
+    statement: >-
+      systemd-homed privilege escalation. Only the libsystemd0 and libudev1
+      libraries are in the image; homed never runs. Asha, 2026-10-20.
+    expired_at: 2026-12-31

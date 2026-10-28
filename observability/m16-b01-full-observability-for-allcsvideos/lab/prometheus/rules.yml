@@ -1,0 +1,15 @@
+# recording rules: one set for every service, thanks to the shared http_* names (M16-L03)
+# (lab windows are 1m so the demo is quick; production usually uses 5m)
+groups:
+  - name: red-recording
+    rules:
+      - record: job_route:http_requests:rate1m
+        expr: sum by (job, route) (rate(http_requests_total{route!~"/health.*"}[1m]))
+      - record: job_route:http_errors:ratio_rate1m
+        expr: |
+          sum by (job, route) (rate(http_requests_total{route!~"/health.*", status=~"5.."}[1m]))
+            / sum by (job, route) (rate(http_requests_total{route!~"/health.*"}[1m]))
+      - record: job:http_request_duration_seconds:p99_1m
+        expr: histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket{route!~"/health.*"}[1m])))
+      - record: job:db_pool:saturation
+        expr: max by (job) (db_pool_in_use / db_pool_size)

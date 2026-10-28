@@ -1,0 +1,5 @@
+---
+# collections this project needs, pinned (ansible-galaxy collection install -r requirements.yml)
+collections:
+  - name: ansible.posix
+    version: 2.2.2

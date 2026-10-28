@@ -1,0 +1,10 @@
+# first attempt: every alert on its own, straight to the pager, repeated every minute
+route:
+  receiver: pager
+  group_by: ['...']                     # no grouping: every label set is its own group
+  group_wait: 0s
+  group_interval: 30s
+  repeat_interval: 1m
+receivers:
+  - name: pager
+    webhook_configs: [{url: "http://receiver:8080/pager"}]

@@ -1,0 +1,22 @@
+# Written by the cluster admin. hostPath PVs are for single-node tests only:
+# real static PVs point at a network disk, an NFS export or a cloud volume ID.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: catalog-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /var/allcsvideos/catalog-pv
+    type: DirectoryOrCreate
+  nodeAffinity:              # the data lives on this node only
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values: ["lab-worker"]

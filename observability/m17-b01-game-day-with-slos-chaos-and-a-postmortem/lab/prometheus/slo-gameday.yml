@@ -1,0 +1,75 @@
+# The three SLOs of the game day, measured at the students (as close to the user as we can, lesson 1).
+# Same shape as the production rules Sloth generates from slo/slos.yml, with the windows compressed for a lab:
+# production pages on 1h AND 5m; the game day uses 5m AND 1m (as in lesson 2). The budgets stay 30-day budgets.
+groups:
+  - name: slo-sli
+    rules:
+      - record: slo:sli_error:ratio_rate1m
+        labels: {slo: catalog-availability}
+        expr: sum(rate(http_requests_total{job="students", route="/api/courses", code=~"5..|error"}[1m])) / sum(rate(http_requests_total{job="students", route="/api/courses"}[1m]))
+      - record: slo:sli_error:ratio_rate5m
+        labels: {slo: catalog-availability}
+        expr: sum(rate(http_requests_total{job="students", route="/api/courses", code=~"5..|error"}[5m])) / sum(rate(http_requests_total{job="students", route="/api/courses"}[5m]))
+      - record: slo:sli_error:ratio_rate1m
+        labels: {slo: catalog-latency}
+        expr: 1 - sum(rate(http_request_duration_seconds_bucket{job="students", route="/api/courses", le="0.25"}[1m])) / sum(rate(http_request_duration_seconds_count{job="students", route="/api/courses"}[1m]))
+      - record: slo:sli_error:ratio_rate5m
+        labels: {slo: catalog-latency}
+        expr: 1 - sum(rate(http_request_duration_seconds_bucket{job="students", route="/api/courses", le="0.25"}[5m])) / sum(rate(http_request_duration_seconds_count{job="students", route="/api/courses"}[5m]))
+      - record: slo:sli_error:ratio_rate1m
+        labels: {slo: copilot-availability}
+        expr: sum(rate(http_requests_total{job="students", route="/api/ask", code=~"5..|error"}[1m])) / sum(rate(http_requests_total{job="students", route="/api/ask"}[1m]))
+      - record: slo:sli_error:ratio_rate5m
+        labels: {slo: copilot-availability}
+        expr: sum(rate(http_requests_total{job="students", route="/api/ask", code=~"5..|error"}[5m])) / sum(rate(http_requests_total{job="students", route="/api/ask"}[5m]))
+  - name: slo-budget
+    rules:
+      - record: slo:error_budget:ratio      # 1 - objective
+        labels: {slo: catalog-availability}
+        expr: vector(0.001)
+      - record: slo:planned_requests:30d     # the month's valid requests at 20 students a second
+        labels: {slo: catalog-availability}
+        expr: vector(46656000)
+      - record: slo:bad_requests:increase3h  # bad requests since the game day started (under 3 h)
+        labels: {slo: catalog-availability}
+        expr: sum(increase(http_requests_total{job="students", route="/api/courses", code=~"5..|error"}[3h]))
+      - record: slo:error_budget:ratio      # 1 - objective
+        labels: {slo: catalog-latency}
+        expr: vector(0.01)
+      - record: slo:planned_requests:30d     # the month's valid requests at 20 students a second
+        labels: {slo: catalog-latency}
+        expr: vector(46656000)
+      - record: slo:bad_requests:increase3h  # bad requests since the game day started (under 3 h)
+        labels: {slo: catalog-latency}
+        expr: sum(increase(http_request_duration_seconds_count{job="students", route="/api/courses"}[3h])) - sum(increase(http_request_duration_seconds_bucket{job="students", route="/api/courses", le="0.25"}[3h]))
+      - record: slo:error_budget:ratio      # 1 - objective
+        labels: {slo: copilot-availability}
+        expr: vector(0.01)
+      - record: slo:planned_requests:30d     # the month's valid requests at 20 students a second
+        labels: {slo: copilot-availability}
+        expr: vector(5184000)
+      - record: slo:bad_requests:increase3h  # bad requests since the game day started (under 3 h)
+        labels: {slo: copilot-availability}
+        expr: sum(increase(http_requests_total{job="students", route="/api/ask", code=~"5..|error"}[3h]))
+      - record: slo:burn_rate:1m
+        expr: slo:sli_error:ratio_rate1m / on(slo) slo:error_budget:ratio
+      - record: slo:burn_rate:5m
+        expr: slo:sli_error:ratio_rate5m / on(slo) slo:error_budget:ratio
+      - record: slo:budget_used:ratio_gameday   # share of the whole 30-day budget the game day has spent
+        expr: slo:bad_requests:increase3h / on(slo) (slo:error_budget:ratio * on(slo) slo:planned_requests:30d)
+  - name: slo-alerts
+    rules:
+      - alert: ErrorBudgetBurn                  # the fast-burn page: 14.4x on the long AND the short window
+        expr: slo:burn_rate:5m > 14.4 and slo:burn_rate:1m > 14.4
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $labels.slo }}: burning its 30-day error budget {{ $value | printf \"%.0f\" }}x too fast"
+          runbook: "runbooks/{{ $labels.slo }}.md"
+      - alert: CatalogServingStale              # a cause, not a symptom: a ticket, nobody is woken
+        expr: sum(rate(api_stale_answers_total[1m])) > 0
+        for: 1m
+        labels: {severity: ticket}
+        annotations:
+          summary: "catalog API is answering from its stale copy: the database is not answering in time"
+          runbook: "runbooks/catalog-availability.md"

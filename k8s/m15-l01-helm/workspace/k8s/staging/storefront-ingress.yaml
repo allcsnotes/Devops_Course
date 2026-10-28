@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: storefront
+  labels: {app: storefront, course: devops}
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: staging.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: {name: storefront, port: {name: http}}

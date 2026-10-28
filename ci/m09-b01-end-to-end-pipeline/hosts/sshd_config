@@ -1,0 +1,11 @@
+# environment host: key-only SSH, one user, no root, no passwords, no forwarding
+Include /etc/ssh/sshd_config.d/*.conf
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AllowUsers deploy
+AllowTcpForwarding no
+X11Forwarding no
+AuthorizedKeysFile .ssh/authorized_keys
+Subsystem sftp internal-sftp

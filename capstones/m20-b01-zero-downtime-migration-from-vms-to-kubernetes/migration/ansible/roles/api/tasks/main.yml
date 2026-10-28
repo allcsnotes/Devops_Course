@@ -1,0 +1,67 @@
+---
+- name: Install Python venv support (and packaging, which the pip module needs)
+  ansible.builtin.apt:
+    name: [python3-venv, python3-packaging]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the allcs system user
+  ansible.builtin.user:
+    name: allcs
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Create {{ api_home }}
+  ansible.builtin.file:
+    path: "{{ api_home }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy release {{ api_version }}
+  ansible.builtin.copy:
+    src: "{{ api_src }}/{{ item }}"
+    dest: "{{ api_home }}/{{ item }}"
+    mode: "0644"
+  loop: [api.py, requirements.txt]
+  notify: restart allcs-api
+
+- name: Install its Python packages into the venv
+  ansible.builtin.pip:
+    requirements: "{{ api_home }}/requirements.txt"
+    virtualenv: "{{ api_home }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: Render the environment file (secrets from the vault)
+  ansible.builtin.template:
+    src: allcs-api.env.j2
+    dest: /etc/allcs-api.env
+    owner: root
+    group: allcs
+    mode: "0640"
+  notify: restart allcs-api
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: allcs-api.service.j2
+    dest: /etc/systemd/system/allcs-api.service
+    mode: "0644"
+  notify: [reload systemd, restart allcs-api]
+
+- name: Restart now if anything changed
+  ansible.builtin.meta: flush_handlers
+
+- name: Keep allcs-api running and enabled at boot
+  ansible.builtin.systemd_service:
+    name: allcs-api
+    state: started
+    enabled: true
+
+- name: Wait until it is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ api_port }}/readyz"
+  register: ready
+  until: ready.status == 200
+  retries: 15
+  delay: 1

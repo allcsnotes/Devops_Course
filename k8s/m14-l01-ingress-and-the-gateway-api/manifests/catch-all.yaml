@@ -1,0 +1,13 @@
+# A catch-all: an Ingress with no rules, only a default backend.
+# (Traefik uses spec.defaultBackend only from an Ingress without rules.)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: catch-all
+spec:
+  ingressClassName: traefik
+  defaultBackend:
+    service:
+      name: storefront
+      port:
+        name: http

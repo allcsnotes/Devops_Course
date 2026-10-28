@@ -1,0 +1,12 @@
+$TTL 60
+@   IN SOA ns1.allcsvideos.test. hostmaster.allcsvideos.test. (
+            2026102201  ; serial
+            3600        ; refresh
+            600         ; retry
+            604800      ; expire
+            60 )        ; negative caching TTL
+    IN NS     ns1.allcsvideos.test.
+ns1         IN A      10.0.205.53
+web-01      IN A      10.0.205.10
+www         IN A      10.0.205.10
+db-01       IN A      10.0.205.20

@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: allcsvideos-dev
+resources:
+- ../../base
+components:
+- ../../components/debug
+images:
+- name: allcsvideos/api
+  newTag: 1.5.0
+- name: allcsvideos/storefront
+  newTag: 1.5.0
+configMapGenerator:
+- name: api-config
+  behavior: merge
+  literals:
+  - APP_ENV=dev
+patches:
+- target:
+    kind: Ingress
+    name: web
+  patch: |-
+    - op: replace
+      path: /spec/rules/0/host
+      value: dev.allcsvideos.com
+replacements:
+- source:
+    kind: Ingress
+    name: web
+    fieldPath: spec.rules.0.host
+  targets:
+  - select:
+      kind: Deployment
+      name: api
+    fieldPaths:
+    - spec.template.spec.containers.[name=api].env.[name=PUBLIC_HOST].value

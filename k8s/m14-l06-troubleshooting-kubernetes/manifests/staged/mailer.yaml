@@ -1,0 +1,19 @@
+# staged: the mailer needs a Secret that was never created
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mailer
+  labels: {app: mailer, course: devops}
+spec:
+  containers:
+  - name: mailer
+    image: catalog-api:2.5.0
+    env:
+    - name: DATABASE_URL
+      valueFrom:
+        configMapKeyRef: {name: api-config, key: DATABASE_URL}
+    - name: SMTP_PASSWORD
+      valueFrom:
+        secretKeyRef: {name: mailer-smtp, key: password}
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}

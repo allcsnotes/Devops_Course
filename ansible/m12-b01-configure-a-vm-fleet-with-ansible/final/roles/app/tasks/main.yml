@@ -1,0 +1,82 @@
+---
+- name: Refuse to run without a pinned version
+  ansible.builtin.assert:
+    that: copilot_version | length > 0
+    quiet: true
+
+- name: Install Python venv support (and packaging, which the pip module needs)
+  ansible.builtin.apt:
+    name: [python3-venv, python3-packaging]
+    state: present
+
+- name: Create the copilot system user
+  ansible.builtin.user:
+    name: copilot
+    system: true
+    create_home: false
+    home: "{{ copilot_home }}"
+    shell: /usr/sbin/nologin
+
+- name: Create the folder for release {{ copilot_version }}
+  ansible.builtin.file:
+    path: "{{ copilot_home }}/releases/{{ copilot_version }}"
+    state: directory
+    mode: "0755"
+
+- name: Unpack Course Copilot {{ copilot_version }}
+  ansible.builtin.unarchive:
+    src: "{{ copilot_artifact_dir }}/copilot-{{ copilot_version }}.tar.gz"
+    dest: "{{ copilot_home }}/releases/{{ copilot_version }}"
+    creates: "{{ copilot_home }}/releases/{{ copilot_version }}/app/main.py"
+
+- name: Install its Python packages into the venv
+  ansible.builtin.pip:
+    requirements: "{{ copilot_home }}/releases/{{ copilot_version }}/requirements.txt"
+    virtualenv: "{{ copilot_home }}/venv"
+    virtualenv_command: python3 -m venv
+
+- name: Create /etc/copilot
+  ansible.builtin.file:
+    path: /etc/copilot
+    state: directory
+    mode: "0755"
+
+- name: Render the environment file
+  ansible.builtin.template:
+    src: copilot.env.j2
+    dest: /etc/copilot/copilot.env
+    owner: root
+    group: copilot
+    mode: "0640"
+  notify: restart copilot
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: copilot.service.j2
+    dest: /etc/systemd/system/copilot.service
+    mode: "0644"
+  notify: [reload systemd, restart copilot]
+
+- name: Point current at release {{ copilot_version }}
+  ansible.builtin.file:
+    src: "{{ copilot_home }}/releases/{{ copilot_version }}"
+    dest: "{{ copilot_home }}/current"
+    state: link
+  notify: restart copilot
+
+- name: Restart now if anything changed
+  ansible.builtin.meta: flush_handlers
+
+- name: Keep copilot running and enabled at boot
+  ansible.builtin.systemd_service:
+    name: copilot
+    state: started
+    enabled: true
+
+- name: Wait for the health check of release {{ copilot_version }}
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ copilot_port }}/health"
+  register: health
+  until: health.status == 200 and health.json.version == copilot_version
+  retries: 15
+  delay: 1

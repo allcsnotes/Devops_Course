@@ -1,0 +1,11 @@
+Lab-only accounts for the M11-L05 pipeline lab. FAKE passwords, used only inside this throwaway lab.
+Gitea web UI: http://localhost:3000
+
+asha    asha@example.com    site admin, owner of the allcsvideos organisation        password: fake-lab-pass-asha
+priya   priya@example.com   developer (team devs: write on allcsvideos-infra)       password: fake-lab-pass-priya
+rahul   rahul@example.com   senior SRE (devs + releasers: write on infra-production) password: fake-lab-pass-rahul
+
+State database (PostgreSQL, lab only): admin user tfstate / fake-lab-pass-tfstate
+  tf_plan     fake-lab-pass-plan      read-only on both states
+  tf_staging  fake-lab-pass-staging   read/write on the staging state only
+  tf_prod     fake-lab-pass-prod      read/write on the prod state only

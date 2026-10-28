@@ -1,0 +1,25 @@
+# a "transcode" that takes 90 seconds, scheduled every minute: it always overruns
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: transcode-allow
+  namespace: allcsvideos
+  labels: {app: transcode-allow, course: devops}
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Allow
+  successfulJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: {app: transcode-allow, course: devops}
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: transcode
+            image: busybox:1.37.0
+            command: ["sh", "-c", "echo $(date +%T) start; sleep 90; echo $(date +%T) done"]
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {memory: 32Mi}

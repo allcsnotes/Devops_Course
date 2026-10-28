@@ -1,0 +1,51 @@
+// Grafana Alloy: find this project's containers, read their stdout, add labels, ship to Loki.
+discovery.docker "lab" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=m16-logs"]
+  }
+}
+
+discovery.relabel "lab" {
+  targets = discovery.docker.lab.targets
+  rule {   // only the app containers
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex         = "web|api"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "lab" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.lab.output
+  forward_to = [loki.process.lab.receiver]
+}
+
+loki.process "lab" {
+  stage.json {                    // read one field from each JSON line
+    expressions = { level = "level", request_id = "request_id" }
+  }
+  stage.labels {                  // and make it a label: a few values only
+    values = { level = "" }
+  }
+  stage.structured_metadata {     // high-cardinality fields: attached to the line, not indexed
+    values = { request_id = "" }
+  }
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

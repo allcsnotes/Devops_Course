@@ -1,0 +1,51 @@
+---
+- name: Read the groups on this server
+  ansible.builtin.getent:
+    database: group
+
+- name: Never lock out the account Ansible logs in with
+  ansible.builtin.assert:
+    that: ansible_user in ssh_members
+    fail_msg: "{{ ansible_user }} is in none of {{ hardening_ssh_allow_groups }}: refusing to lock us out"
+    quiet: true
+  vars:
+    ssh_members: "{{ hardening_ssh_allow_groups | select('in', ansible_facts.getent_group)
+                     | map('extract', ansible_facts.getent_group)
+                     | map(attribute='2') | join(',') | split(',') }}"
+
+- name: Harden sshd (module 2, lesson 6)
+  ansible.builtin.template:
+    src: 10-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/10-hardening.conf
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: restart ssh
+
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Allow SSH from the bastion only
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "{{ item }}"
+  loop: "{{ hardening_ssh_from }}"
+
+- name: Open this group's service ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.0.port | string }}"
+    proto: tcp
+    from_ip: "{{ item.1 }}"
+  loop: "{{ ufw_allow | subelements('from') }}"
+  loop_control:
+    label: "{{ item.0.port }} from {{ item.1 }}"
+
+- name: Deny everything else, and switch the firewall on
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming

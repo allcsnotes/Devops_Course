@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+  namespace: allcsvideos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storefront
+  template:
+    metadata:
+      labels:
+        app: storefront
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.29.8-alpine
+        volumeMounts:
+        - name: site                   # the whole ConfigMap: a folder
+          mountPath: /etc/nginx/conf.d
+        - name: site                   # one key, as one file, via subPath
+          mountPath: /etc/nginx/headers.inc
+          subPath: headers.inc
+      volumes:
+      - name: site
+        configMap:
+          name: storefront-nginx

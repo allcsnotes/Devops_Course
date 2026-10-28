@@ -1,0 +1,16 @@
+# ci-gitea.yml - the M08-L01 workflow exactly as it ran in the video, on the local Gitea lab.
+# Gitea job containers run as root, and hc refuses to run as root, so the tests run as the image's normal user
+# "ubuntu". Use this file instead of ../.github/workflows/ci.yml ONLY on the Gitea lab (save it in your repo as
+# .github/workflows/ci.yml or .gitea/workflows/ci.yml).
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the hc tests
+        # hc refuses to run as root, and this job container runs as root
+        run: |
+          chown -R ubuntu .
+          runuser -u ubuntu -- bash hc/tests/run.sh

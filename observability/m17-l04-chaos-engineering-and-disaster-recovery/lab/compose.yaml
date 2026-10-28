@@ -1,0 +1,147 @@
+# allcsvideos chaos + DR lab (M17-L04): 2 API replicas behind nginx, PostgreSQL with WAL archiving,
+# simulated students, Prometheus + Grafana, and a backup host
+name: chaos-lab
+
+x-labels: &labels
+  course: devops
+x-api: &api
+  image: chaos-lab/app:1.0
+  build: ./app
+  environment:
+    DB_HOST: db
+    DB_PASSWORD: demo-password-123              # FAKE lab password
+  cap_add: [NET_ADMIN]                          # lets the experiments run tc netem inside this container
+  mem_limit: 128m
+  restart: unless-stopped
+  labels: *labels
+
+services:
+  db:
+    image: postgres:18.6-alpine3.24
+    entrypoint: ["sh", "-c", "mkdir -p /archive && chown postgres:postgres /archive && exec docker-entrypoint.sh \"$$@\"", "--"]
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /archive/%f && cp %p /archive/%f   # every finished WAL file -> the archive
+      - -c
+      - archive_timeout=10s                     # lab setting: close a WAL file at least every 10 s
+      - -c
+      - timezone=Asia/Kolkata
+      - -c
+      - log_timezone=Asia/Kolkata
+    environment:
+      POSTGRES_USER: allcs
+      POSTGRES_DB: catalog
+      POSTGRES_PASSWORD: demo-password-123      # FAKE lab password
+    volumes:
+      - ./db/10-replication.sh:/docker-entrypoint-initdb.d/10-replication.sh:ro
+      - pgdata:/var/lib/postgresql
+      - archive:/archive
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "allcs", "-d", "catalog"]
+      interval: 2s
+      retries: 60
+    labels: *labels
+
+  api1: {<<: *api, hostname: api1}
+  api2: {<<: *api, hostname: api2}
+
+  lb:
+    image: nginx:1.29.8-alpine
+    command: ["nginx", "-c", "/etc/nginx/lab/nginx.conf", "-g", "daemon off;"]
+    volumes: ["./nginx:/etc/nginx/lab:ro"]          # the folder, not the file (edits replace the file)
+    ports: ["127.0.0.1:8080:80"]
+    depends_on: [api1, api2]
+    labels: *labels
+
+  students:
+    image: chaos-lab/app:1.0
+    command: ["python", "loadgen.py"]
+    environment: {RATE: "20", TARGET: "http://lb"}
+    volumes: ["./data:/data"]
+    depends_on: [lb]
+    labels: *labels
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - tsdb:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    labels: *labels
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: fake-admin-pass-123   # FAKE lab password
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    mem_limit: 768m
+    ports: ["127.0.0.1:3000:3000"]
+    labels: *labels
+
+  backup:                                       # the backup host, backup-01
+    image: chaos-lab/backup:1.0
+    build: ./backup
+    hostname: backup-01
+    command: ["sleep", "infinity"]
+    init: true
+    working_dir: /home/asha
+    environment:
+      HOME: /home/asha
+      PGHOST: db
+      PGUSER: allcs
+      PGDATABASE: catalog
+    volumes:
+      - ./backup:/home/asha/bin:ro
+      - backups:/backups
+      - archive:/archive:ro
+      - pitrdata:/restore
+      - ./data:/acks:ro                         # what the students were told was saved
+    labels: *labels
+
+  db-test:                                      # an empty, fresh PostgreSQL for restore tests
+    image: postgres:18.6-alpine3.24
+    profiles: [restore]
+    command: ["postgres", "-c", "timezone=Asia/Kolkata"]
+    environment:
+      POSTGRES_USER: allcs
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: demo-password-123      # FAKE lab password
+    volumes: [testdata:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "allcs", "-d", "postgres"]
+      interval: 2s
+      retries: 60
+    labels: *labels
+
+  db-pitr:                                      # PostgreSQL started from a base backup + archived WAL
+    image: postgres:18.6-alpine3.24
+    profiles: [pitr]
+    command: ["postgres", "-c", "timezone=Asia/Kolkata", "-c", "log_timezone=Asia/Kolkata"]
+    volumes: [pitrdata:/var/lib/postgresql, "archive:/archive:ro"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "allcs", "-d", "postgres"]
+      interval: 2s
+      retries: 60
+    labels: *labels
+
+volumes:
+  pgdata: {labels: *labels}
+  archive: {labels: *labels}
+  backups: {labels: *labels}
+  pitrdata: {labels: *labels}
+  testdata: {labels: *labels}
+  tsdb: {labels: *labels}
+  grafana: {labels: *labels}
+
+networks:
+  default:
+    labels: *labels

@@ -1,0 +1,57 @@
+# Teams and people (fake people, example.com addresses)
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: allcsvideos
+  title: allcsvideos.com
+spec:
+  type: organization
+  children: [platform, courses]
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: platform
+  title: Platform team
+  description: Builds the internal developer platform (golden paths, CI, clusters)
+spec:
+  type: platform-team
+  parent: allcsvideos
+  children: []
+  members: [asha, rahul]
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: courses
+  title: Courses team
+  description: Stream-aligned team for the course catalog, storefront and Course Copilot
+spec:
+  type: stream-aligned
+  parent: allcsvideos
+  children: []
+  members: [priya]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: asha
+spec:
+  profile: {displayName: Asha, email: asha@example.com}
+  memberOf: [platform]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: rahul
+spec:
+  profile: {displayName: Rahul, email: rahul@example.com}
+  memberOf: [platform]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: priya
+spec:
+  profile: {displayName: Priya, email: priya@example.com}
+  memberOf: [courses]

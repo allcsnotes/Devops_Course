@@ -1,0 +1,3 @@
+# never commit a vault password (or any retry files)
+.vault-pass*
+*.retry

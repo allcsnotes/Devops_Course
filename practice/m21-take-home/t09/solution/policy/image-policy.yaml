@@ -1,0 +1,41 @@
+# Only images from our registry, pinned by digest, in namespaces that opt in.
+# Native ValidatingAdmissionPolicy (CEL, GA since Kubernetes 1.30): no extra controller to run.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: allcs-pinned-images
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments, statefulsets, daemonsets]
+  variables:
+    - name: spec
+      expression: "object.kind == 'Pod' ? object.spec : object.spec.template.spec"
+    - name: images
+      expression: >-
+        variables.spec.containers.map(c, c.image) +
+        (has(variables.spec.initContainers) ? variables.spec.initContainers.map(c, c.image) : [])
+  validations:
+    - expression: "variables.images.all(i, i.startsWith('registry.lab:5000/allcs/'))"
+      messageExpression: "'images must come from registry.lab:5000/allcs/, got: ' + variables.images.join(', ')"
+    - expression: "variables.images.all(i, i.contains('@sha256:'))"
+      messageExpression: "'images must be pinned by digest (@sha256:...), got: ' + variables.images.join(', ')"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: allcs-pinned-images
+spec:
+  policyName: allcs-pinned-images
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels: {allcs.io/enforce-images: "true"}

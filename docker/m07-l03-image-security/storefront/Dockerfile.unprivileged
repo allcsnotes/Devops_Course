@@ -1,0 +1,14 @@
+# syntax=docker/dockerfile:1
+# v3: same build stage; nginx runs as a non-root user (uid 101) on port 8080
+FROM --platform=$BUILDPLATFORM node:22.23.3-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,id=image-security-npm,target=/root/.npm \
+    npm ci
+COPY . .
+RUN npm run build
+
+FROM nginxinc/nginx-unprivileged:1.29.8-alpine
+COPY --from=build /app/dist/ /usr/share/nginx/html/
+USER 101
+EXPOSE 8080

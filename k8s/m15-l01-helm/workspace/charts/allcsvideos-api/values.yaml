@@ -1,0 +1,26 @@
+# Defaults for every environment. Override per environment with -f.
+replicaCount: 1
+
+image:
+  repository: allcsvideos/api
+  tag: ""          # empty: use the chart's appVersion
+  pullPolicy: IfNotPresent
+
+config:
+  databaseUrl: postgres://api@db.allcsvideos.internal:5432/catalog
+  logLevel: INFO
+
+ingress:
+  enabled: false
+  className: traefik
+  host: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+migration:
+  enabled: false

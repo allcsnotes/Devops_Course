@@ -1,0 +1,25 @@
+# launch-day users: run traffic.py with kubectl exec (load is bounded by its rate)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic
+  template:
+    metadata:
+      labels:
+        app: traffic
+    spec:
+      containers:
+      - name: traffic
+        image: scale-traffic:1.0
+        resources:
+          requests:
+            cpu: 250m
+            memory: 64Mi
+          limits:
+            cpu: "1"
+            memory: 256Mi

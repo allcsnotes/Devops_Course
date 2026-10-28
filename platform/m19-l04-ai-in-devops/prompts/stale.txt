@@ -1,0 +1,1 @@
+What is the latest stable version of Kubernetes, and of Prometheus? Answer in two short sentences.

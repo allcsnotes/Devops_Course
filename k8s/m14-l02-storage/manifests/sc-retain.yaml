@@ -1,0 +1,8 @@
+# Same provisioner as standard, but the volume (and its data) outlives the claim.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-retain
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer

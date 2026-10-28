@@ -1,0 +1,39 @@
+# allcsvideos: Course Copilot and the storefront, hardened
+name: image-security
+
+x-labels: &labels
+  course: devops
+
+x-hardened: &hardened          # the same rules for every service
+  read_only: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp
+  labels: *labels
+
+services:
+  copilot:
+    <<: *hardened
+    image: copilot:1.5.0
+    user: "10001:10001"
+    ports:
+      - "127.0.0.1:8000:8000"
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 100
+
+  storefront:
+    <<: *hardened
+    image: storefront:3
+    user: "101:101"
+    ports:
+      - "127.0.0.1:8080:8080"
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 50
+
+networks:
+  default:
+    labels: *labels

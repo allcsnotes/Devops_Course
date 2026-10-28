@@ -1,0 +1,23 @@
+# kind-cluster.yaml (M18-L02): one control-plane node, no host port mappings (parallel labs).
+# The node is also attached to the lab network as 10.0.182.30, so Vault (10.0.182.10) can reach the API server for
+# TokenReview (Kubernetes auth) and the lab machine can run kubectl: that address is added to the API server certificate.
+# Longer leader-election timings keep a single control plane stable on a busy laptop (M14-L06 lesson).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  apiServer:
+    certSANs: ["10.0.182.30"]
+  controllerManager:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane

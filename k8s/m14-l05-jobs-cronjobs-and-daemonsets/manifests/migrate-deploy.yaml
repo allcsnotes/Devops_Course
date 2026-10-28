@@ -1,0 +1,22 @@
+# STAGED MISTAKE: a one-off database migration run as a Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migrate
+  namespace: allcsvideos
+  labels: {app: migrate, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: migrate}
+  template:
+    metadata:
+      labels: {app: migrate, course: devops}
+    spec:
+      containers:
+      - name: migrate
+        image: busybox:1.37.0
+        command: ["sh", "-c", "echo applying migration 0042_add_lesson_tags; sleep 3; echo done"]
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {memory: 32Mi}

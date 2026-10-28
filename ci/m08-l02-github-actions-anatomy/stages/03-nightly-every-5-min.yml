@@ -1,0 +1,24 @@
+# Stage 3 (M08-L02): nightly.yml, first version - a manual run with an input, and a schedule every 5 minutes
+# (only to see a scheduled run quickly; replace it with ../.github/workflows/nightly.yml afterwards).
+name: nightly
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # lab demo: every 5 minutes
+  workflow_dispatch:
+    inputs:
+      config:
+        description: which hc test config to check
+        type: choice
+        options: [ok, warn]
+        default: ok
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dry-run hc
+        env:
+          CONF: ${{ inputs.config || 'ok' }}
+        run: |
+          echo "event: ${{ github.event_name }}, config: $CONF"
+          bash hc/bin/hc -n -c "hc/tests/$CONF.conf"

@@ -1,0 +1,26 @@
+# Admission policy (built into Kubernetes, admissionregistration.k8s.io/v1, GA since 1.30): every Deployment in an
+# allcsvideos namespace must label its pods with team, env and cost-center. Module 18 lesson 4 did the same with Kyverno.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata: {name: require-cost-labels}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [apps]
+      apiVersions: [v1]
+      operations: [CREATE, UPDATE]
+      resources: [deployments]
+  validations:
+  - expression: "['team', 'env', 'cost-center'].all(k, has(object.spec.template.metadata.labels) && k in object.spec.template.metadata.labels)"
+    messageExpression: "'pods need the labels team, env and cost-center (cost allocation); got: ' + (has(object.spec.template.metadata.labels) ? object.spec.template.metadata.labels.map(k, k).join(', ') : 'none')"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata: {name: require-cost-labels}
+spec:
+  policyName: require-cost-labels
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels: {project: allcsvideos}

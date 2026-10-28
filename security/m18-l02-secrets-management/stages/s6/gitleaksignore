@@ -1,0 +1,3 @@
+# Known leak in release 1.6.0: the key was revoked and replaced on 2026-10-21 (Rahul).
+# History clean-up is tracked in lesson 2; remove this line once the commit is purged.
+2bce599f29fb83dc2007f0f0d0f9423f0dfed0d8:copilot/app/thumbnails.py:aws-access-token:6

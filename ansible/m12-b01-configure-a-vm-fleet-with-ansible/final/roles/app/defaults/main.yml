@@ -1,0 +1,8 @@
+---
+# the release to run: set it in group_vars (copilot_version), never here
+copilot_version: ""
+# release tarballs on the control node: copilot-<version>.tar.gz
+copilot_artifact_dir: "{{ lookup('env', 'HOME') }}/releases"
+copilot_home: /opt/copilot
+copilot_port: 8000
+copilot_env: production

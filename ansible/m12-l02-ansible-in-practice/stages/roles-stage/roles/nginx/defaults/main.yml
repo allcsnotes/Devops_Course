@@ -1,0 +1,3 @@
+---
+nginx_server_name: "{{ inventory_hostname }}"
+api_backends: []

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom
+  labels:
+    course: devops
+spec:
+  restartPolicy: Never
+  containers:
+  - name: hog
+    image: busybox:1.37.0
+    command: ["dd", "if=/dev/zero", "of=/dev/null", "bs=100M", "count=1"]
+    resources:
+      limits:
+        memory: 32Mi

@@ -1,0 +1,13 @@
+# production: three pods, the released build, more memory
+replicaCount: 3
+image:
+  tag: "2.4.0"
+ingress:
+  enabled: true
+  host: allcsvideos.test
+resources:
+  requests:
+    cpu: 100m
+    memory: 96Mi
+  limits:
+    memory: 192Mi

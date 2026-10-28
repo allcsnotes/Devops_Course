@@ -1,0 +1,7 @@
+---
+# only members of these groups may log in over SSH
+hardening_ssh_allow_groups: [sshusers]
+# SSH (port 22) is allowed only from these addresses
+hardening_ssh_from: ["{{ bastion_ip }}"]
+# extra open ports: list of {port, from: [addresses or any]}
+ufw_allow: []

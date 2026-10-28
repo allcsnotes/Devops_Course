@@ -1,0 +1,43 @@
+# The cluster operator's part: one Gateway, shared by the app teams
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-infra
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: allcsvideos
+  namespace: gateway-infra
+  annotations:
+    cert-manager.io/cluster-issuer: lab-ca    # one Certificate per HTTPS listener
+spec:
+  gatewayClassName: nginx                     # the implementation: NGINX Gateway Fabric
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes: &teams                     # which namespaces may attach routes
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            shared-gateway-access: "true"
+  - name: https-site
+    protocol: HTTPS
+    port: 443
+    hostname: allcsvideos.test
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: site-gw-tls                     # cert-manager creates this Secret
+    allowedRoutes: *teams
+  - name: https-api
+    protocol: HTTPS
+    port: 443
+    hostname: api.allcsvideos.test
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: api-gw-tls
+    allowedRoutes: *teams

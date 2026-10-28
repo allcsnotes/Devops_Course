@@ -1,0 +1,48 @@
+# rollback.yml (M09-B01): one field, the reason. The deploy agent checks the standby colour and switches back to it.
+# Uses the "production" Environment too (its key is an environment secret), so a reviewer approves the rollback.
+name: rollback
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Why are we rolling back?
+        required: true
+        type: string
+
+concurrency: production
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REASON: ${{ inputs.reason }}
+    steps:
+      - name: Who and why
+        run: |
+          echo "rolled back by: ${{ github.actor }}"
+          echo "reason:         $REASON"
+      - name: SSH key and host key for production
+        env:
+          KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN: ${{ vars.PROD_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+      - name: Switch back to the previous release
+        run: ssh -n -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }} rollback rollback-${{ github.run_number }}
+      - name: Smoke test production
+        run: |
+          curl -sf ${{ vars.PROD_URL }}/version | tee version.json; echo
+          curl -sf ${{ vars.PROD_RECORD_URL }} | jq -e --slurpfile v version.json '.live.copilot == $v[0].copilot'
+          curl -sf "${{ vars.PROD_URL }}/copilot/ask?q=docker" | jq -e '.answer | test("DevOps")'
+      - name: Mark verified on production
+        if: success()
+        run: ssh -n -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }} smoke rollback-${{ github.run_number }} passed
+      - name: Mark failed on production
+        if: failure()
+        run: ssh -n -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }} smoke rollback-${{ github.run_number }} failed

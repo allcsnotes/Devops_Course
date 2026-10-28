@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels: {app: api, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: api}
+  template:
+    metadata:
+      labels: {app: api, course: devops}
+    spec:
+      containers:
+      - name: api
+        image: allcsvideos/api:2.5.0
+        ports:
+        - {name: http, containerPort: 8080}
+        envFrom:
+        - configMapRef: {name: api-config}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 25m, memory: 48Mi}
+          limits: {memory: 96Mi}

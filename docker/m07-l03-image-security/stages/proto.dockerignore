@@ -1,0 +1,4 @@
+# never send these to the builder
+.env
+.git
+**/__pycache__

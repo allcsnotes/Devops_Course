@@ -1,0 +1,44 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# secrets and local env
+.env
+*.env.local
+secrets/
+*.pem
+*.key
+id_ed25519*
+!*.example
+
+# build output and dependencies
+dist/
+target/
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+
+# kube / ansible local files
+kubeconfig*
+*.retry
+
+# lab accounts / tokens created by lab scripts
+**/lab/accounts.env
+**/lab/.tokens/
+**/lab/secrets/
+
+# public, non-secret files the lessons need
+!public.pem
+!**/pebble.minica.pem
+!practice/m21-take-home/t03/solution/secrets/

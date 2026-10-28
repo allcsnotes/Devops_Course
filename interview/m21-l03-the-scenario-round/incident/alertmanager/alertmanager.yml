@@ -1,0 +1,15 @@
+# Lesson 6 routing: severity=page wakes a human (the lab pager), severity=ticket goes to the ticket queue.
+route:
+  receiver: tickets
+  group_by: [alertname, service]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 1h
+  routes:
+    - matchers: [severity="page"]
+      receiver: pager
+receivers:
+  - name: pager
+    webhook_configs: [{url: "http://pager:8080/alertmanager", send_resolved: true}]
+  - name: tickets
+    webhook_configs: [{url: "http://pager:8080/tickets", send_resolved: true}]

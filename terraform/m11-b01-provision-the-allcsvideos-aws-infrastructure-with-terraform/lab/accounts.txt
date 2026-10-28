@@ -1,0 +1,8 @@
+Lab-only Gitea accounts for the M11-B01 pipeline lab. FAKE passwords, used only inside this throwaway lab.
+Gitea web UI: http://localhost:3000
+
+asha    asha@example.com    site admin, owner of the allcsvideos organisation     password: fake-lab-pass-asha
+priya   priya@example.com   developer (team devs: write on allcsvideos-aws)      password: fake-lab-pass-priya
+rahul   rahul@example.com   senior SRE, reviewer (team devs)                     password: fake-lab-pass-rahul
+
+No cloud credentials anywhere in this lab: the pipeline only runs checks that need none.

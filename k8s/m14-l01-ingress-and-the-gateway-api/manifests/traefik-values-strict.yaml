@@ -1,0 +1,15 @@
+# Traefik (Helm chart 42.1.0, Traefik v3.7.15) as the Ingress controller
+service:
+  spec:
+    type: NodePort        # kind has no cloud load balancer: use fixed node ports
+ports:
+  web:
+    nodePort: 30480       # laptop 127.0.0.1:8480 -> kind port mapping -> here
+  websecure:
+    nodePort: 30443       # laptop 127.0.0.1:8443 -> kind port mapping -> here
+ingressClass:
+  enabled: true
+  isDefaultClass: false   # Ingresses must name ingressClassName: traefik
+providers:
+  kubernetesIngress:
+    strictPrefixMatching: true   # Prefix = path elements, as the Ingress spec says

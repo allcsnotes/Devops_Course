@@ -1,0 +1,27 @@
+# kind-cluster.yaml (M18-B01, from M18-L04): ONE node, the control plane (the laptop is shared with parallel labs and renders).
+# kind removes the control-plane taint when there are no workers, so everything runs on it. No host port mappings.
+# Under host load: longer kubeadm timeouts and longer leader-election timings (lessons from M14-L06 / M15-L03).
+# containerd reads per-registry hosts.toml files, so the node can pull from the lab registry registry.lab:5000 over HTTP.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.cri.v1.images".registry]
+    config_path = "/etc/containerd/certs.d"
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  apiServer:
+    timeoutForControlPlane: 10m0s   # kind uses kubeadm v1beta3 for Kubernetes 1.35: map-style extraArgs
+  controllerManager:
+    extraArgs:
+      leader-elect-lease-duration: "90s"
+      leader-elect-renew-deadline: "60s"
+      leader-elect-retry-period: "10s"
+  scheduler:
+    extraArgs:
+      leader-elect-lease-duration: "90s"
+      leader-elect-renew-deadline: "60s"
+      leader-elect-retry-period: "10s"
+nodes:
+- role: control-plane

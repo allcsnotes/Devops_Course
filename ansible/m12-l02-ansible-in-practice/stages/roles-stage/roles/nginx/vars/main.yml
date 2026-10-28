@@ -1,0 +1,3 @@
+---
+# vars/main.yml: values the role needs and nobody should override
+nginx_worker_connections: 768

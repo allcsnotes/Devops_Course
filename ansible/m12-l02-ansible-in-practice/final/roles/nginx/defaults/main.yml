@@ -1,0 +1,4 @@
+---
+nginx_worker_connections: 768
+nginx_server_name: "{{ inventory_hostname }}"
+api_backends: []

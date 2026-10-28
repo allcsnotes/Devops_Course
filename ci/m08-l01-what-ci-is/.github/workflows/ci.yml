@@ -1,0 +1,12 @@
+# ci.yml - the first CI workflow (M08-L01). Copy it to .github/workflows/ci.yml in your allcsvideos-ops repo.
+name: ci
+on: [push, pull_request]      # run on every push, and on every pull request
+jobs:
+  test:
+    runs-on: ubuntu-latest      # a fresh GitHub-hosted Ubuntu VM for every job
+    steps:
+      - uses: actions/checkout@v4   # fetch this exact commit
+      - name: Run the hc tests
+        # GitHub-hosted runners already run steps as a normal user, so hc (which refuses root) runs as-is.
+        # On the optional local Gitea lab the job runs as root: see ../gitea-lab/README.md.
+        run: bash hc/tests/run.sh

@@ -1,0 +1,40 @@
+#!/bin/bash
+# /usr/local/bin/deploy-agent : the ONLY thing the pipeline's SSH key may run on this host (authorized_keys forces it).
+# The pipeline asks for one of these, and anything else is refused:
+#   deploy <sha256:digest> <run-label>   pull course-copilot by digest, (re)start it with Compose, record it
+#   smoke <sha256:digest> passed|failed  record the smoke-test result for that digest
+#   status                               print the deployment record
+set -euo pipefail
+source /etc/deploy-agent.conf          # REPO=ghcr.io/<owner>/course-copilot (written at start-up)
+REC=/srv/deploys/versions.json
+ENV_NAME=$(sed -n 's/^APP_ENV=//p' /srv/app/app.env)
+read -r cmd digest arg extra <<< "${SSH_ORIGINAL_COMMAND:-}"
+[[ -z ${extra:-} ]] || { echo "refused: too many arguments" >&2; exit 2; }
+now(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+[[ -f $REC ]] || jq -n --arg e "$ENV_NAME" '{environment: $e, current: null, history: []}' > $REC
+check_digest(){ [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "refused: not an image digest" >&2; exit 2; }; }
+case $cmd in
+deploy)
+  check_digest; [[ $arg =~ ^[a-z0-9-]{1,40}$ ]] || { echo "refused: bad run label" >&2; exit 2; }
+  echo "deploy-agent on $(hostname) ($ENV_NAME): $REPO@$digest"
+  docker pull -q "$REPO@$digest"
+  version=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$REPO@$digest")
+  revision=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$REPO@$digest")
+  cd /srv/app
+  printf 'IMAGE=%s\nIMAGE_DIGEST=%s\n' "$REPO@$digest" "$digest" > .env      # what Compose fills into compose.yaml
+  docker compose up -d --remove-orphans 2>&1
+  jq --arg t "$(now)" --arg d "$digest" --arg v "$version" --arg r "${revision:0:7}" --arg run "$arg" \
+     '.current = {version: $v, revision: $r, digest: $d, deployed_at: $t, run: $run, smoke: "pending"}
+      | .history = [.current] + .history' $REC > $REC.tmp && mv $REC.tmp $REC
+  echo "recorded: $ENV_NAME now runs $version ($digest)"
+  ;;
+smoke)
+  check_digest; [[ $arg == passed || $arg == failed ]] || { echo "refused: passed or failed" >&2; exit 2; }
+  jq --arg d "$digest" --arg s "$arg" \
+     '(.history[] | select(.digest == $d and .smoke == "pending")).smoke = $s
+      | if .current.digest == $d then .current.smoke = $s else . end' $REC > $REC.tmp && mv $REC.tmp $REC
+  echo "recorded: smoke $arg for $digest on $ENV_NAME"
+  ;;
+status) jq . $REC ;;
+*) echo "refused: deploy-agent only knows deploy, smoke and status" >&2; exit 2 ;;
+esac

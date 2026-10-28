@@ -1,0 +1,220 @@
+# Step 2 (M09-B01): + one image per service: built once, SBOM, Trivy gate, pushed to GHCR by digest (main only).
+name: pipeline
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write          # GITHUB_TOKEN may push to ghcr.io
+
+env:
+  TRIVY_DISABLE_VEX_NOTICE: "true"
+  DOCKER_BUILD_RECORD_UPLOAD: "false"
+
+jobs:
+  # ---------- 1. checks: every pull request and every push to main ----------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the Dockerfiles
+        uses: docker://hadolint/hadolint:v2.15.1
+        with:
+          args: hadolint copilot/Dockerfile storefront/Dockerfile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('copilot/requirements*.txt') }}
+      - name: Ruff and mypy
+        working-directory: copilot
+        run: |
+          pip install -q -r requirements.txt -r requirements-dev.txt
+          ruff check . && ruff format --check . && mypy app
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('copilot/requirements*.txt') }}
+      - name: Unit tests
+        working-directory: copilot
+        run: |
+          pip install -q -r requirements.txt -r requirements-dev.txt
+          pytest -m "not integration" --junitxml=reports/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-tests
+          path: copilot/reports/
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        ports: ["5432:5432"]   # GitHub: the job runs on the VM and reaches services on localhost
+        env:
+          POSTGRES_USER: allcsvideos
+          POSTGRES_PASSWORD: demo-password-123   # FAKE: a throwaway CI database
+          POSTGRES_DB: allcsvideos
+        options: >-
+          --health-cmd "pg_isready -h localhost -U allcsvideos"
+          --health-interval 2s --health-timeout 3s --health-retries 15
+      redis:
+        image: redis:8.10.2-alpine3.23
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s --health-timeout 3s --health-retries 15
+    env:
+      DATABASE_URL: postgresql://allcsvideos:demo-password-123@localhost:5432/allcsvideos
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('copilot/requirements*.txt') }}
+      - name: Migrations, then integration tests (real PostgreSQL + Redis)
+        working-directory: copilot
+        run: |
+          pip install -q -r requirements.txt -r requirements-dev.txt
+          python db/apply.py db/migrations/*.sql
+          pytest -m integration -v
+
+  # ---------- 2. one image per service: built once, scanned, pushed by digest (pushes only from main) ----------
+  image:
+    needs: [lint, unit, integration]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      copilot: ${{ steps.push-copilot.outputs.digest }}
+      storefront: ${{ steps.push-storefront.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        id: v
+        run: |
+          echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+          echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"   # ghcr.io names are lowercase
+          mkdir -p sbom
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.33.1
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "copilot: tags"
+        id: meta-copilot
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/copilot
+          flavor: latest=false
+          tags: |
+            type=sha
+            type=semver,pattern={{version}},value=${{ steps.v.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.v.outputs.version }}
+      - name: "copilot: build"
+        uses: docker/build-push-action@v7
+        with:
+          context: copilot
+          target: runtime
+          outputs: type=docker,dest=copilot.tar
+          tags: ${{ steps.meta-copilot.outputs.tags }}
+          build-args: |
+            APP_VERSION=${{ steps.v.outputs.version }}
+            APP_REVISION=${{ steps.v.outputs.short }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/copilot:buildcache
+      - name: "copilot: SBOM"
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --input copilot.tar --format cyclonedx --output sbom/copilot.cdx.json
+      - name: "copilot: scan (gate)"
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --cache-dir .trivy --input copilot.tar --scanners vuln --severity CRITICAL --ignore-unfixed --ignorefile copilot/.trivyignore.yaml --exit-code 1
+      - name: "copilot: push"
+        id: push-copilot
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: copilot
+          target: runtime
+          push: true
+          tags: ${{ steps.meta-copilot.outputs.tags }}
+          labels: ${{ steps.meta-copilot.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.v.outputs.version }}
+            APP_REVISION=${{ steps.v.outputs.short }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/copilot:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/copilot:buildcache,mode=max
+          provenance: false
+
+      - name: "storefront: tags"
+        id: meta-storefront
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/storefront
+          flavor: latest=false
+          tags: |
+            type=sha
+            type=semver,pattern={{version}},value=${{ steps.v.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.v.outputs.version }}
+      - name: "storefront: build"
+        uses: docker/build-push-action@v7
+        with:
+          context: storefront
+          outputs: type=docker,dest=storefront.tar
+          tags: ${{ steps.meta-storefront.outputs.tags }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/storefront:buildcache
+      - name: "storefront: SBOM"
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --input storefront.tar --format cyclonedx --output sbom/storefront.cdx.json
+      - name: "storefront: scan (gate)"
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --cache-dir .trivy --input storefront.tar --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1
+      - name: "storefront: push"
+        id: push-storefront
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v7
+        with:
+          context: storefront
+          push: true
+          tags: ${{ steps.meta-storefront.outputs.tags }}
+          labels: ${{ steps.meta-storefront.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/storefront:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/storefront:buildcache,mode=max
+          provenance: false
+
+      - name: Release manifest
+        if: github.event_name == 'push'
+        run: |
+          jq -n --arg v ${{ steps.v.outputs.version }} --arg r ${{ steps.v.outputs.short }} \
+                --arg c ${{ steps.push-copilot.outputs.digest }} --arg s ${{ steps.push-storefront.outputs.digest }} \
+                '{version: $v, revision: $r, copilot: $c, storefront: $s}' | tee sbom/release.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.v.outputs.version }}-${{ steps.v.outputs.short }}
+          path: sbom/

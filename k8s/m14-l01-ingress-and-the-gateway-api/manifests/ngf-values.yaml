@@ -1,0 +1,8 @@
+# NGINX Gateway Fabric 2.8.0: each Gateway gets an NGINX Deployment + Service
+nginx:
+  service:
+    type: NodePort                   # kind has no cloud load balancer
+    externalTrafficPolicy: Cluster   # Local would answer only on nodes that run NGINX
+    nodePorts:                       # laptop 127.0.0.1:9480/9443 -> kind port mapping -> here
+    - {port: 31480, listenerPort: 80}
+    - {port: 31443, listenerPort: 443}

@@ -1,0 +1,58 @@
+Our CI job 'deps' failed. Below are the job definition and the failing part of its log. Answer in 3 short points: 1) which step failed, 2) which finding blocked it, quoting the log line, 3) the smallest change that fixes it. Use only what is below.
+
+JOB DEFINITION (security.yml):
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: trivy report (everything, warn only)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --ignorefile .trivyignore.yaml --exit-code 0 -q copilot/
+      - name: trivy gate (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --ignorefile .trivyignore.yaml --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q copilot/
+
+FAILING STEP OUTPUT (41 of 189 log lines kept):
+Report Summary
+┌──────────────────┬──────┬─────────────────┐
+│      Target      │ Type │ Vulnerabilities │
+├──────────────────┼──────┼─────────────────┤
+│ requirements.txt │ pip  │        2        │
+└──────────────────┴──────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+requirements.txt (pip)
+======================
+Total: 2 (UNKNOWN: 0, LOW: 0, MEDIUM: 1, HIGH: 0, CRITICAL: 1)
+┌──────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬────────────────────────────────────────────────────────┐
+│ Library  │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                         Title                          │
+├──────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼────────────────────────────────────────────────────────┤
+│ pyyaml   │ CVE-2020-14343 │ CRITICAL │ fixed  │ 5.3.1             │ 5.4           │ PyYAML: incomplete fix for CVE-2020-1747               │
+│          │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2020-14343             │
+├──────────┼────────────────┼──────────┤        ├───────────────────┼───────────────┼────────────────────────────────────────────────────────┤
+│ requests │ CVE-2026-25645 │ MEDIUM   │        │ 2.32.4            │ 2.33.0        │ requests: Requests: Security bypass due to predictable │
+│          │                │          │        │                   │               │ temporary file creation                                │
+│          │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-25645             │
+└──────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴────────────────────────────────────────────────────────┘
+Report Summary
+┌──────────────────┬──────┬─────────────────┐
+│      Target      │ Type │ Vulnerabilities │
+├──────────────────┼──────┼─────────────────┤
+│ requirements.txt │ pip  │        1        │
+└──────────────────┴──────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+requirements.txt (pip)
+======================
+Total: 1 (HIGH: 0, CRITICAL: 1)
+┌─────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬────────────────────────────────────────────┐
+│ Library │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                   Title                    │
+├─────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼────────────────────────────────────────────┤
+│ pyyaml  │ CVE-2020-14343 │ CRITICAL │ fixed  │ 5.3.1             │ 5.4           │ PyYAML: incomplete fix for CVE-2020-1747   │
+│         │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2020-14343 │
+└─────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴────────────────────────────────────────────┘
+##[error]Process completed with exit code 1.

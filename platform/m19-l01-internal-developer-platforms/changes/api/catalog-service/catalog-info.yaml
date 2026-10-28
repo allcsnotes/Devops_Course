@@ -1,0 +1,37 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: catalog-service
+  description: Courses from PostgreSQL, the list cached in Redis for 60 seconds
+  tags: [java, spring-boot]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:courses
+  system: allcsvideos
+  providesApis: [catalog-api]
+  dependsOn: [resource:catalog-db, resource:cache]
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: catalog-api
+  description: Read the course catalog
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:courses
+  system: allcsvideos
+  definition: |
+    openapi: 3.0.3
+    info: {title: catalog-api, version: 1.0.0}
+    paths:
+      /courses:
+        get:
+          summary: List all courses
+          responses: {'200': {description: The courses}}
+      /courses/{id}:
+        get:
+          summary: One course
+          parameters: [{name: id, in: path, required: true, schema: {type: integer}}]
+          responses: {'200': {description: The course}, '404': {description: No such course}}

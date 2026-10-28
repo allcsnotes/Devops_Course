@@ -1,0 +1,23 @@
+# STAGED, lab only: the over-broad binding. Someone needed to "debug the catalog" and gave its
+# ServiceAccount read access to Secrets, pods and ConfigMaps in EVERY namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ops-debug
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "pods", "configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ops-debug
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ops-debug
+subjects:
+- kind: ServiceAccount
+  name: catalog
+  namespace: catalog

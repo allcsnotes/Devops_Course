@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tiny
+  labels:
+    course: devops
+spec:
+  containers:
+  - name: app
+    image: gcr.io/distroless/python3-debian13@sha256:e8f62938f332884afc903083bd4e2b9e5f5dcd4084aac0db135ffc7c0025f2ce
+    args: ["-m", "http.server", "8080"]

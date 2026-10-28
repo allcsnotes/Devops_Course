@@ -1,0 +1,10 @@
+# FAKE demo credentials for the lab
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smtp
+type: Opaque
+data:                        # values must be base64
+  username: bWFpbGVyQGV4YW1wbGUuY29t
+stringData:                  # plain text: the API server encodes it
+  password: FAKE-smtp-pass-42

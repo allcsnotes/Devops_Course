@@ -1,0 +1,11 @@
+# lab-login <dev|staging|prod> : LAB STAND-IN for "aws sso login" + "aws sts get-caller-identity".
+# There is no AWS here. It only records which (FAKE) account the shell's credentials belong to, in
+# TF_VAR_caller_account, which the lab Terraform module compares with the account it is meant for.
+case "$1" in
+  dev)     export TF_VAR_caller_account=111111111111 ;;
+  staging) export TF_VAR_caller_account=222222222222 ;;
+  prod)    export TF_VAR_caller_account=333333333333 ;;
+  *) echo "usage: lab-login dev|staging|prod"; return 1 ;;
+esac
+export LAB_ACCOUNT_NAME="allcs-$1"
+echo "lab stand-in: credentials for account $TF_VAR_caller_account ($LAB_ACCOUNT_NAME), role Deploy, 1 hour"

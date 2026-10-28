@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: gateway
+  description: The API edge - Spring Cloud Gateway with a circuit breaker and a Redis rate limiter
+  tags: [java, spring-boot]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:platform
+  system: allcsvideos
+  dependsOn: [component:catalog-service, resource:cache]

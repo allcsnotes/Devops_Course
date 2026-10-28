@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - slo-rules.yml            # SLIs over many windows, error budget
+  - slo-alerts.yml           # multiwindow, multi-burn-rate alerts
+
+storage:
+  tsdb:
+    retention:
+      time: 45d              # longer than the 30-day SLO window
+
+scrape_configs:
+  - job_name: api            # the catalog API (server side)
+    static_configs:
+      - targets: ["api:8080"]
+
+  - job_name: loadgen        # the students' side of the same requests
+    static_configs:
+      - targets: ["loadgen:9000"]

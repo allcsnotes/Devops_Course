@@ -1,0 +1,10 @@
+# No storageClassName: the cluster's default StorageClass (standard) is used.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi

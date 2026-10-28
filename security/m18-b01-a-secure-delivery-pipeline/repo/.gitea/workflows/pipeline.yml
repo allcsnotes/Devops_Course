@@ -1,0 +1,130 @@
+name: pipeline
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  IMAGE: registry.lab:5000/allcs/copilot
+  PLATFORM: linux/arm64            # the CI Docker daemon's platform: use linux/amd64 on an Intel/AMD machine
+  TRIVY: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+
+jobs:
+  # ---------- 1. the four gates from lesson 1: every pull request and every push to main ----------
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # the whole history: a secret in an old commit still leaks
+      - name: gitleaks (any secret blocks)
+        uses: docker://zricethezav/gitleaks:v8.30.1
+        with:
+          args: git --redact --no-banner -v .
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep (ERROR rules block)
+        uses: docker://semgrep/semgrep:1.182.0
+        with:
+          entrypoint: semgrep
+          args: scan --config .semgrep/ --metrics=off --error copilot/
+
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: trivy gate (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --ignorefile .trivyignore.yaml --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q copilot/
+
+  iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkov (new findings block)
+        uses: docker://bridgecrew/checkov:3.3.30
+        with:
+          entrypoint: checkov
+          args: -d infra --framework terraform --baseline infra/.checkov.baseline --external-checks-dir infra/policies --compact --quiet
+
+  # ---------- 2. release: main only, after all four gates ----------
+  release:
+    needs: [secrets, sast, deps, iac]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: build and push, with SLSA provenance
+        id: build
+        run: |
+          V=$(cat VERSION)
+          docker buildx build -q --provenance=mode=max,version=v1 --sbom=false \
+            --build-arg APP_VERSION=$V -t $IMAGE:$V --metadata-file meta.json --push copilot
+          echo "digest=$(jq -r '."containerimage.digest"' meta.json)" >> "$GITHUB_OUTPUT"
+      - name: image scan (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        env:
+          TRIVY_INSECURE: "true"       # lab registry speaks plain HTTP
+        with:
+          args: image --image-src remote --platform ${{ env.PLATFORM }} --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+      - name: SBOM (CycloneDX)
+        uses: docker://anchore/syft:v1.55.0@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375300be14d0b6eeb2e82eaa110a
+        env:
+          SYFT_REGISTRY_INSECURE_USE_HTTP: "true"
+        with:
+          args: -q --platform ${{ env.PLATFORM }} registry:${{ env.IMAGE }}@${{ steps.build.outputs.digest }} -o cyclonedx-json=sbom.cdx.json
+      - name: sign the digest
+        uses: docker://ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        with:
+          args: sign --key env://COSIGN_KEY --new-bundle-format=false --use-signing-config=false --tlog-upload=false --allow-http-registry -y ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+      - name: attest the SBOM
+        uses: docker://ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        with:
+          args: attest --key env://COSIGN_KEY --new-bundle-format=false --use-signing-config=false --tlog-upload=false --allow-http-registry -y --type cyclonedx --predicate sbom.cdx.json ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+      - name: verify the signature
+        uses: docker://ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+        with:
+          args: verify --key cosign.pub --insecure-ignore-tlog --allow-http-registry -o text ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+      - name: verify the SBOM attestation
+        uses: docker://ghcr.io/sigstore/cosign/cosign:v3.1.4@sha256:0f06154836d2de34f887a5c273506d52ca43edaa1d9e53e6510fa78a48f69c2d
+        with:
+          args: verify-attestation --key cosign.pub --insecure-ignore-tlog --allow-http-registry --type cyclonedx -o text ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+
+  # ---------- 3. deploy: the manifests from Git, the image pinned to the digest that was just signed ----------
+  deploy:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: kubectl v1.35.9 (checksum verified)
+        run: |
+          A=$(dpkg --print-architecture)   # arm64 or amd64
+          [ "$A" = arm64 ] && SUM=39c98bca82875d9a9ddfb6f3c5ab17c3f78ea0801230683e538a67d5c053308d || SUM=3cfeaf80be482b435b0aa214aff6e0b2c312ee23c0ff20810c75517b6004c6eb
+          curl -fsSLo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.35.9/bin/linux/$A/kubectl
+          echo "$SUM  /usr/local/bin/kubectl" | sha256sum -c -
+          chmod +x /usr/local/bin/kubectl
+      - name: apply to prod
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+          REF: ${{ env.IMAGE }}@${{ needs.release.outputs.digest }}
+        run: |
+          printf '%s' "$KUBE_CONFIG" > "$RUNNER_TEMP/kubeconfig"; export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          sed "s|IMAGE_REF|$REF|" deploy/copilot.yaml | kubectl apply -f -
+          kubectl -n prod rollout status deploy/copilot --timeout=180s

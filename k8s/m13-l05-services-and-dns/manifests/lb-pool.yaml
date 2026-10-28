@@ -1,0 +1,16 @@
+# MetalLB: hand out addresses from the kind Docker network to LoadBalancer services.
+# The range must sit inside the "kind" network: check with  docker network inspect kind  (usually 172.18.0.0/16).
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: kind-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.18.255.50-172.18.255.59
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: kind-l2
+  namespace: metallb-system

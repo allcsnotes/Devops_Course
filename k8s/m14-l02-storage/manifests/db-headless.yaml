@@ -1,0 +1,12 @@
+# Headless Service: no virtual IP, a DNS name per pod (db-0.db, db-1.db, ...)
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  clusterIP: None
+  selector:
+    app: db
+  ports:
+  - name: postgres
+    port: 5432

@@ -1,0 +1,13 @@
+# dev-only additions: docker compose loads this file automatically
+services:
+  api:
+    environment:
+      LOG_LEVEL: debug
+    develop:
+      watch:
+        - action: sync+restart     # copy the file in, restart the container
+          path: ./api/app.py
+          target: /app/app.py
+  db:
+    ports:
+      - "127.0.0.1:55432:5432"     # for local database tools

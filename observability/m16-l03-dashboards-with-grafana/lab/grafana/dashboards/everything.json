@@ -1,0 +1,946 @@
+{
+  "uid": "allcs-everything",
+  "title": "allcsvideos · everything",
+  "tags": [
+    "allcsvideos"
+  ],
+  "editable": false,
+  "schemaVersion": 41,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "http_requests_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "http_requests_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "node_cpu_seconds_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_cpu_seconds_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "node_memory_MemFree_bytes",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_memory_MemFree_bytes",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "http_request_duration_seconds_sum",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "http_request_duration_seconds_sum / http_request_duration_seconds_count",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "gauge",
+      "title": "node_network_receive_bytes_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_network_receive_bytes_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "go_gc_duration_seconds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "go_gc_duration_seconds",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "process_resident_memory_bytes",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "node_load1",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_load1",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "type": "gauge",
+      "title": "node_load5",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_load5",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "node_load15",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_load15",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "db_pool_in_use",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "db_pool_in_use",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "node_disk_io_time_seconds_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 5,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_disk_io_time_seconds_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "python_gc_objects_collected_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "python_gc_objects_collected_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "up",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 15,
+      "type": "gauge",
+      "title": "node_filesystem_avail_bytes",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_filesystem_avail_bytes",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "prometheus_tsdb_head_series",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "prometheus_tsdb_head_series",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 17,
+      "type": "piechart",
+      "title": "http_requests_in_flight",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "http_requests_in_flight",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "node_context_switches_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 10,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_context_switches_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 19,
+      "type": "gauge",
+      "title": "process_cpu_seconds_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "process_cpu_seconds_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 20,
+      "type": "bargauge",
+      "title": "node_forks_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_forks_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "node_intr_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_intr_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "process_open_fds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "process_open_fds",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "node_procs_running",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_procs_running",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "scrape_duration_seconds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 15,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "scrape_duration_seconds",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 25,
+      "type": "gauge",
+      "title": "db_pool_timeouts_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "db_pool_timeouts_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "node_network_transmit_bytes_total",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_network_transmit_bytes_total",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 27,
+      "type": "piechart",
+      "title": "node_entropy_available_bits",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_entropy_available_bits",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "http_request_duration_seconds_bucket",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "http_request_duration_seconds_bucket",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 29,
+      "type": "gauge",
+      "title": "node_boot_time_seconds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "node_boot_time_seconds",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 30,
+      "type": "bargauge",
+      "title": "python_info",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-lab"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 20,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-lab"
+          },
+          "refId": "A",
+          "expr": "python_info",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    }
+  ]
+}

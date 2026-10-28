@@ -1,0 +1,9 @@
+---
+# site.yml: the web fleet, configured in place (the mutable way). Roles from module 12, lesson 2.
+- name: Web servers
+  hosts: web
+  become: true
+  roles:
+    - common
+    - hc_toolkit
+    - nginx

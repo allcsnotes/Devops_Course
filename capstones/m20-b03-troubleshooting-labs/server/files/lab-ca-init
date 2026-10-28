@@ -1,0 +1,22 @@
+#!/bin/bash
+# lab-ca-init: creates the LAB certificate authority in /etc/allcs-ca (lab only, never in production)
+set -euo pipefail
+CA=/etc/allcs-ca; install -d -m 700 $CA; cd $CA; : > index.txt; echo 1000 > serial
+cat > ca.cnf <<'C'
+[ca]
+default_ca = lab
+[lab]
+dir = /etc/allcs-ca
+database = $dir/index.txt
+serial = $dir/serial
+new_certs_dir = $dir
+certificate = $dir/ca.crt
+private_key = $dir/ca.key
+default_md = sha256
+policy = any
+unique_subject = no
+copy_extensions = none
+[any]
+commonName = supplied
+C
+openssl req -x509 -new -newkey rsa:2048 -nodes -keyout ca.key -out ca.crt -days 3650 -subj "/CN=allcsvideos LAB CA" 2>/dev/null

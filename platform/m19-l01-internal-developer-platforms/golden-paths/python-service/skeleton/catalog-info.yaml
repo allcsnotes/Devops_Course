@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  tags: [python]
+  links:
+    - url: http://gitea:3000/allcsvideos/${{ values.name }}/actions
+      title: CI runs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{ values.owner }}
+  system: allcsvideos

@@ -1,0 +1,31 @@
+# kind-cluster.yaml: ONE node, the control plane. kind removes the control-plane taint when there are no workers,
+# so everything runs on it. One host port: 127.0.0.1:8093 -> node port 30093 (the Argo CD web UI).
+# Longer timeouts and leader-election timings (from M14-L06) keep the control plane stable on a busy laptop.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  kind: InitConfiguration
+  timeouts:
+    controlPlaneComponentHealthCheck: 10m0s
+    kubeletHealthCheck: 10m0s
+    kubernetesAPICall: 5m0s
+- |
+  kind: ClusterConfiguration
+  controllerManager:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30093
+    hostPort: 8093
+    listenAddress: "127.0.0.1"
+    protocol: TCP

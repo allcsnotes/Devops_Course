@@ -1,0 +1,3 @@
+apiVersion: 1
+providers:
+  - {name: allcsvideos, folder: allcsvideos, type: file, options: {path: /var/lib/grafana/dashboards}}

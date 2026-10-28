@@ -1,0 +1,28 @@
+# One Ingress, two host names, one entry point (Traefik)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: allcsvideos
+spec:
+  ingressClassName: traefik       # which controller should serve this Ingress
+  rules:
+  - host: allcsvideos.test        # matched against the Host header
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: storefront
+            port:
+              name: http
+  - host: api.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: api-v1
+            port:
+              name: http

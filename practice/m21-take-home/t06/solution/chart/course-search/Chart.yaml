@@ -1,0 +1,6 @@
+apiVersion: v2
+name: course-search
+description: The allcsvideos course-search API (take-home task 6)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

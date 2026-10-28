@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot
+  labels: {app: copilot, course: devops}
+spec:
+  selector: {app: copilot}
+  ports:
+  - {name: http, port: 80, targetPort: http}

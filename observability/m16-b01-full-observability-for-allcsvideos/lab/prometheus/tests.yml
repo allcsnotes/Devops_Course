@@ -1,0 +1,21 @@
+# unit tests for the alert rules, run in CI: promtool test rules tests.yml
+rule_files: [rules.yml, alerts.yml]
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:   # Course Copilot: 2 minutes at 2 answers a second, all OK; then half of them fail
+      - series: 'http_requests_total{job="copilot",route="/ask",status="200"}'
+        values: '0+30x8 255+15x20'
+      - series: 'http_requests_total{job="copilot",route="/ask",status="500"}'
+        values: '0x8 15+15x20'
+    alert_rule_test:
+      - eval_time: 2m30s          # failing, but not for 1m yet: pending, no page
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 3m30s
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: page, team: platform, job: copilot, route: /ask}
+            exp_annotations:
+              summary: "copilot /ask: 50% of requests fail"
+              runbook_url: "https://runbooks.allcsvideos.example/high-error-rate"

@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# The allcsvideos load balancer: every host in the inventory's [web] group.
+log_format lb '$msec $upstream_addr $status "$request"';
+
+upstream copilot {
+    zone copilot 64k;    # shared by all workers (module 9, lesson 2)
+{% for host in groups['web'] %}
+    server {{ hostvars[host].ansible_host }}:80 max_fails=1 fail_timeout=5s;   # {{ host }}
+{% endfor %}
+}
+
+server {
+    listen 80 default_server;
+    access_log /var/log/nginx/lb.log lb;
+    location / {
+        proxy_pass http://copilot;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_connect_timeout 1s;
+    }
+}

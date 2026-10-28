@@ -1,0 +1,7 @@
+---
+api_version: "2.4.0"
+api_port: 8080
+db_host: 10.0.201.20
+db_pool: 10                       # connections each server opens at startup
+db_password: "{{ vault_db_password }}"
+session_secret: "{{ vault_session_secret }}"

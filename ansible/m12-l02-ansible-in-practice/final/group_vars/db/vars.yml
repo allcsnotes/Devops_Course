@@ -1,0 +1,6 @@
+# the database servers. Secrets live in vault.yml (encrypted), referenced here by name.
+db_name: allcsvideos
+db_user: allcs_app
+db_password: "{{ vault_db_password }}"
+# only the admin may log in to a database server (as in module 2, lesson 6)
+ssh_allow_users: [asha]

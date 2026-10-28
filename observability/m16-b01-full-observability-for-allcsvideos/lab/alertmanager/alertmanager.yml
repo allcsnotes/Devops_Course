@@ -1,0 +1,31 @@
+route:                                  # every alert enters at the root
+  receiver: chat                        # default: anything no child route matches
+  group_by: [alertname, job]
+  group_wait: 30s
+  group_interval: 2m
+  repeat_interval: 4h
+  routes:
+    - matchers: [alertname="Watchdog"]
+      receiver: heartbeat
+      repeat_interval: 2m
+    - matchers: [severity="page"]
+      receiver: pager
+      group_by: [team]                  # one page per team per incident, however many services hurt
+      group_wait: 30s                   # collect the alerts of one incident before the first page
+      group_interval: 1m
+    - matchers: [severity="ticket"]
+      receiver: tickets
+      repeat_interval: 24h
+inhibit_rules:                          # mute tickets while the same team is already paged
+  - source_matchers: [severity="page"]
+    target_matchers: [severity="ticket"]
+    equal: [team]
+receivers:                              # lab stand-ins: one webhook receiver, a path each
+  - name: pager
+    webhook_configs: [{url: "http://receiver:8080/pager"}]
+  - name: tickets
+    webhook_configs: [{url: "http://receiver:8080/tickets"}]
+  - name: chat
+    webhook_configs: [{url: "http://receiver:8080/chat"}]
+  - name: heartbeat
+    webhook_configs: [{url: "http://receiver:8080/heartbeat"}]

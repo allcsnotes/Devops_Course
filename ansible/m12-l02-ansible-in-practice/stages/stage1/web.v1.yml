@@ -1,0 +1,64 @@
+---
+- name: Set up the allcsvideos web servers
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Render nginx.conf
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: "0644"
+        validate: nginx -t -c %s
+      notify: reload nginx
+
+    - name: Create the web root
+      ansible.builtin.file:
+        path: /var/www/allcsvideos
+        state: directory
+        mode: "0755"
+
+    - name: Render the home page
+      ansible.builtin.template:
+        src: templates/index.html.j2
+        dest: /var/www/allcsvideos/index.html
+        mode: "0644"
+
+    - name: Keep nginx running
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create /etc/allcsvideos
+      ansible.builtin.file:
+        path: /etc/allcsvideos
+        state: directory
+        mode: "0755"
+
+    - name: Render app.env
+      ansible.builtin.template:
+        src: templates/app.env.j2
+        dest: /etc/allcsvideos/app.env
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Render features.yml
+      ansible.builtin.template:
+        src: templates/features.yml.j2
+        dest: /etc/allcsvideos/features.yml
+        mode: "0644"
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

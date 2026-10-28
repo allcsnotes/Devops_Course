@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storefront
+  labels: {app: storefront, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: storefront}
+  template:
+    metadata:
+      labels: {app: storefront, course: devops}
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.29.8-alpine
+        ports:
+        - {name: http, containerPort: 80}
+        volumeMounts:
+        - {name: conf, mountPath: /etc/nginx/conf.d}
+      volumes:
+      - name: conf
+        configMap: {name: storefront-nginx}

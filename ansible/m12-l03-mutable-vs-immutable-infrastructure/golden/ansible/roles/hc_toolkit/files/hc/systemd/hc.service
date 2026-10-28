@@ -1,0 +1,20 @@
+[Unit]
+Description=hc health checks
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=hc
+ExecStart=/opt/hc/bin/hc
+# systemd creates /var/lib/hc and /var/log/hc, owned by hc
+StateDirectory=hc
+LogsDirectory=hc
+# WARN (1) and CRIT (2) are results, not failures of hc itself
+SuccessExitStatus=1 2
+TimeoutStartSec=60
+# hardening: hc can only write to its own two folders
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes

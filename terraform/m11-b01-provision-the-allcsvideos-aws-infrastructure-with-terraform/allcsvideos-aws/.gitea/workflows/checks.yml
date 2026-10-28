@@ -1,0 +1,49 @@
+name: infra-checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_PLUGIN_CACHE_DIR: /tmp/tfcache
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/tfcache
+          key: tf-providers-${{ hashFiles('.terraform.lock.hcl') }}
+      - run: mkdir -p /tmp/tfcache
+      - run: terraform fmt -check -recursive -diff
+      - run: terraform init -backend=false -no-color
+      - run: terraform validate -no-color
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: tflint (recommended rules + AWS ruleset)
+        uses: docker://ghcr.io/terraform-linters/tflint:v0.64.0
+        with:
+          entrypoint: /bin/sh
+          args: -c "tflint --init && tflint"
+
+  checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkov (new findings fail, known ones are in the baseline)
+        uses: docker://bridgecrew/checkov:3.3.30
+        with:
+          entrypoint: checkov
+          args: -d . --framework terraform --baseline .checkov.baseline --external-checks-dir policies --compact --quiet

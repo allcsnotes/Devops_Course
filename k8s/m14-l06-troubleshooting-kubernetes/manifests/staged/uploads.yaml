@@ -1,0 +1,28 @@
+# staged: a claim for a StorageClass that doesn't exist in this cluster
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads
+  labels: {app: uploads, course: devops}
+spec:
+  storageClassName: fast-ssd
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 1Gi}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: uploads
+  labels: {app: uploads, course: devops}
+spec:
+  containers:
+  - name: uploads
+    image: nginx:1.29.8-alpine
+    volumeMounts:
+    - {name: data, mountPath: /data}
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}
+  volumes:
+  - name: data
+    persistentVolumeClaim: {claimName: uploads}

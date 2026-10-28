@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: by-digest}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: by-digest}}
+  template:
+    metadata: {labels: {app: by-digest}}
+    spec:
+      containers:
+        - {name: app, image: "registry.lab:5000/allcs/course-search@sha256:e8c7f1c24969b9824611db0e4b8dd7e46cc0fea55ac77f391bdc4d0db64e323e"}

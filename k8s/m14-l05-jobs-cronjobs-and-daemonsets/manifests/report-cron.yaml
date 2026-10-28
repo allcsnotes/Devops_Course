@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: report
+  namespace: allcsvideos
+  labels: {app: report, course: devops}
+spec:
+  schedule: "30 2 * * *"
+  timeZone: "Asia/Kolkata"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels: {app: report, course: devops}
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: report
+            image: busybox:1.37.0
+            command: ["sh", "-c", "echo $(date -u +%FT%TZ) nightly sales report: 41 new students; echo report.csv uploaded"]
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {memory: 32Mi}

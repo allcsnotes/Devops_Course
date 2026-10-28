@@ -1,0 +1,20 @@
+# Argo CD Application: the catalog API in namespace allcs, from the chart in this repo, with production values.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: allcs-api
+  namespace: argocd
+spec:
+  project: allcsvideos
+  source:
+    repoURL: http://10.0.201.40:3000/allcsvideos/allcsvideos-deploy.git
+    targetRevision: main
+    path: charts/allcs-api
+    helm:
+      valueFiles: [values-prod.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: allcs
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true]

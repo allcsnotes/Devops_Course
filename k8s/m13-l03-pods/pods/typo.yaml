@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: typo
+  labels:
+    course: devops
+spec:
+  containers:
+  - name: web
+    image: nginx:1.29.8-alpnie

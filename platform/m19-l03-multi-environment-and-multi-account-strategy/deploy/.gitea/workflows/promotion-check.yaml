@@ -1,0 +1,15 @@
+name: promotion-check
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Only promote what the previous environment runs
+        run: |
+          git fetch -q origin main
+          bash scripts/promotion-check.sh origin/main

@@ -1,0 +1,3 @@
+---
+api_home: /opt/allcs-api
+api_src: "{{ playbook_dir }}/../app"

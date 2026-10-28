@@ -1,0 +1,52 @@
+# In-cluster Git server for the lab (emptyDir: data is lost when the pod goes)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: git
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitea
+  namespace: git
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: gitea }
+  template:
+    metadata:
+      labels: { app: gitea }
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: gitea
+          image: gitea/gitea:28.1.0-rootless
+          env:
+            - { name: GITEA__security__INSTALL_LOCK, value: "true" }
+            - { name: GITEA__database__DB_TYPE, value: sqlite3 }
+            - { name: GITEA__server__ROOT_URL, value: "http://gitea.git.svc.cluster.local:3000/" }
+            - { name: GITEA__service__DISABLE_REGISTRATION, value: "true" }
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: { path: /api/healthz, port: 3000 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 250m, memory: 400Mi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/gitea }
+            - { name: config, mountPath: /etc/gitea }
+      volumes:
+        - { name: data, emptyDir: {} }
+        - { name: config, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  namespace: git
+spec:
+  selector: { app: gitea }
+  ports:
+    - port: 3000

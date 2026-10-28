@@ -1,0 +1,17 @@
+# Runs after every successful sync (PostSync hook): one real request to the new API.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: smoke-test
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: smoke
+        image: allcsvideos/api:1.4.0
+        command: ["python", "-c", "import json, urllib.request; r = json.load(urllib.request.urlopen('http://api/config', timeout=5)); print('smoke test ok: api', r['version'], 'on', r['pod'])"]

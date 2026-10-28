@@ -1,0 +1,21 @@
+# allcs: the storefront and the catalog API (Helm chart in this repo, production values)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: allcs
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://10.0.202.5:3000/allcsvideos/platform.git
+    targetRevision: main
+    path: charts/allcs
+    helm:
+      valueFiles: [values-prod.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: allcs
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true]
+    retry: {limit: 20, backoff: {duration: 10s, factor: 2, maxDuration: 1m}}

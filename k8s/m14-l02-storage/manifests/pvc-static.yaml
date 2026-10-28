@@ -1,0 +1,11 @@
+# Written by the developer: what the app needs, not where it lives.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: catalog-claim
+spec:
+  storageClassName: manual
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi

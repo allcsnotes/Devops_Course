@@ -1,0 +1,15 @@
+---
+- name: Where does a value come from?
+  hosts: all
+  tasks:
+    - name: Facts and magic variables
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} in {{ group_names }}:
+          {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }},
+          {{ ansible_facts['default_ipv4']['address'] }},
+          {{ ansible_facts['processor_vcpus'] }} vCPUs
+
+    - name: Which log level wins?
+      ansible.builtin.debug:
+        var: app_log_level

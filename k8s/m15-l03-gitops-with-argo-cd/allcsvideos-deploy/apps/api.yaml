@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api
+  namespace: argocd
+  labels:
+    course: devops
+spec:
+  project: default
+  source:
+    repoURL: http://gitea:3000/allcsvideos/allcsvideos-deploy.git
+    targetRevision: main
+    path: api/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: allcsvideos-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

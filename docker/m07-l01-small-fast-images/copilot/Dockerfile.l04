@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+FROM python:3.12.15-slim
+ENV PYTHONUNBUFFERED=1 \
+    COURSE_INDEX=/app/data/courses.json
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl=8.14.1-2+deb13u7 \
+ && rm -rf /var/lib/apt/lists/*
+RUN groupadd --gid 10001 copilot \
+ && useradd --uid 10001 --gid copilot --no-create-home copilot
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.title="course-copilot" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.source="https://github.com/allcsvideos/course-copilot"
+USER 10001:10001
+EXPOSE 8000
+# Docker reserves exit code 2 and curl -f exits 22: map any failure to 1
+# hadolint ignore=DL3025
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -fsS http://localhost:8000/health || exit 1
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

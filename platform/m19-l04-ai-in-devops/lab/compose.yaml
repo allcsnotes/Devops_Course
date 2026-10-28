@@ -1,0 +1,123 @@
+# M19-L04 lab: the allcsvideos request path (storefront-bff x2 and Course Copilot -> catalog-api x2 -> PostgreSQL),
+# observed by Prometheus and Tempo, alerting through Alertmanager to a lab receiver. All images pinned.
+# The AI part (a small local model in Ollama) runs separately, on an internal network: see ai.sh.
+# Build the images first with ./build.sh. Every value that looks like a password or key here is FAKE.
+name: ai-lab
+x-lab: &lab
+  labels: [course=devops, lesson=m19-l04]
+x-api: &api
+  <<: *lab
+  image: allcs-catalog-api:${API_VERSION:-1.4.2}
+  environment: &apienv
+    DATABASE_URL: postgresql://postgres:demo-password-123@db:5432/catalog   # FAKE lab password
+    TZ: IST-5:30
+    OTEL_SERVICE_NAME: catalog-api
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+    OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    OTEL_TRACES_EXPORTER: otlp
+    OTEL_METRICS_EXPORTER: none
+    OTEL_LOGS_EXPORTER: none
+    OTEL_PYTHON_FLASK_EXCLUDED_URLS: "healthz,metrics"
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+    interval: 5s
+    retries: 10
+  depends_on: {db: {condition: service_healthy}}
+  cpus: 0.75
+  mem_limit: 160m
+x-edge: &edge
+  <<: *lab
+  image: allcs-edge:${EDGE_VERSION:-2.3.0}
+  environment: &edgeenv
+    SERVICE: storefront-bff
+    UPSTREAMS: http://api-1:8080,http://api-2:8080
+    CATALOG_API_KEY: FAKE-allcs-key-0000-demo     # FAKE, staged leak: printed in the startup log line
+    TZ: IST-5:30
+    OTEL_SERVICE_NAME: storefront-bff
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+    OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    OTEL_TRACES_EXPORTER: otlp
+    OTEL_METRICS_EXPORTER: none
+    OTEL_LOGS_EXPORTER: none
+    OTEL_PYTHON_FLASK_EXCLUDED_URLS: "healthz,metrics"
+  depends_on: [api-1, api-2]
+  cpus: 0.5
+  mem_limit: 160m
+services:
+  api-1: {<<: *api, hostname: api-1}
+  api-2: {<<: *api, hostname: api-2}
+  bff-1: {<<: *edge, hostname: bff-1}
+  bff-2: {<<: *edge, hostname: bff-2}
+  copilot:
+    <<: *edge
+    hostname: copilot
+    environment: {<<: *edgeenv, SERVICE: course-copilot, OTEL_SERVICE_NAME: course-copilot}
+  db:
+    <<: *lab
+    image: postgres:18.6-alpine3.24
+    environment: {POSTGRES_DB: catalog, POSTGRES_PASSWORD: demo-password-123, TZ: Asia/Kolkata}   # FAKE lab password
+    volumes: ["./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro", "db-data:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "catalog"]
+      interval: 2s
+      retries: 150
+    cpus: 1.0
+    mem_limit: 384m
+  prometheus:
+    <<: *lab
+    image: prom/prometheus:v3.15.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--enable-feature=promql-experimental-functions"]
+    volumes: ["./prometheus:/etc/prometheus:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+    cpus: 0.5
+    mem_limit: 256m
+  alertmanager:
+    <<: *lab
+    image: prom/alertmanager:v0.34.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes: ["./alertmanager:/etc/alertmanager:ro"]
+    ports: ["127.0.0.1:9093:9093"]
+    cpus: 0.25
+    mem_limit: 96m
+  receiver:
+    <<: *lab
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/receiver.py"]
+    environment: {TZ: IST-5:30}
+    volumes: ["./receiver:/srv:ro", "./incident:/data"]
+    cpus: 0.25
+    mem_limit: 64m
+  tempo:
+    <<: *lab
+    image: grafana/tempo:3.1.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes: ["./tempo:/etc/tempo:ro", "tempo-data:/var/tempo"]
+    ports: ["127.0.0.1:3200:3200"]
+    cpus: 0.5
+    mem_limit: 384m
+  load:
+    <<: *lab
+    image: python:3.13.16-slim
+    profiles: [load]
+    command: ["python", "-u", "/load/traffic.py"]
+    environment: {RATE: "${RATE:-10}", RUN: "${RUN:-run}", TZ: IST-5:30}
+    volumes: ["./load:/load:ro", "./runs:/runs"]
+    cpus: 0.5
+  ops:
+    # Asha's ops box: python3, curl and jq, with this lesson's folder mounted at /work. The AI scripts run here.
+    <<: *lab
+    image: allcs-ops:1
+    container_name: ai-lab-ops
+    hostname: lab
+    working_dir: /work
+    command: ["sleep", "infinity"]
+    environment: {TZ: IST-5:30}
+    volumes: ["..:/work"]
+    cpus: 0.5
+    mem_limit: 256m
+volumes:
+  db-data: {labels: [course=devops, lesson=m19-l04]}
+  tempo-data: {labels: [course=devops, lesson=m19-l04]}
+networks:
+  default:
+    labels: [course=devops, lesson=m19-l04]

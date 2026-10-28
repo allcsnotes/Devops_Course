@@ -1,0 +1,4 @@
+; lab root hints: where this resolver starts. (Ubuntu ships the real
+; list of 13 root server addresses in this same file.)
+.                        3600000  NS  root-ns.test.
+root-ns.test.            3600000  A   10.0.53.2

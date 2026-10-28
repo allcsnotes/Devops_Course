@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# build on Debian 13: same Python (3.13.5) and paths as the distroless image
+FROM debian:13.7-slim AS build
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-venv=3.13.5-1 \
+ && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/venv
+COPY requirements.txt .
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+FROM gcr.io/distroless/python3-debian13:nonroot@sha256:ed91505d162119a1e46552bc7f471c77737729a525269a7e9b60646807564601
+ENV PYTHONUNBUFFERED=1 \
+    COURSE_INDEX=/app/data/courses.json
+WORKDIR /app
+COPY --from=build /opt/venv /opt/venv
+COPY app/ app/
+COPY data/ data/
+EXPOSE 8000
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["/opt/venv/bin/python3", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health', timeout=2)"]
+# no shell here: exec form only, no wrapper script
+ENTRYPOINT ["/opt/venv/bin/python3", "-m", "uvicorn"]
+CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8000"]

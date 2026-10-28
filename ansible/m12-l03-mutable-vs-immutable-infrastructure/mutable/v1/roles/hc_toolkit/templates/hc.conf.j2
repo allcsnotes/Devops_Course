@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# /etc/hc/hc.conf for {{ inventory_hostname }}. KEY=value, read as data, never run.
+DISK_WARN={{ hc_disk_warn }}
+DISK_CRIT={{ hc_disk_crit }}
+INODE_WARN={{ hc_disk_warn }}
+INODE_CRIT={{ hc_disk_crit }}
+MEM_WARN={{ hc_mem_warn }}
+MEM_CRIT={{ hc_mem_crit }}
+LOAD_WARN={{ hc_load_warn }}
+LOAD_CRIT={{ hc_load_crit }}
+MOUNTS={{ hc_mounts | join(' ') }}
+SERVICES={{ hc_services | join(' ') }}
+ENDPOINTS={{ hc_endpoints | join(' ') }}
+HTTP_TIMEOUT=3
+WEBHOOK_URL={{ hc_webhook_url }}

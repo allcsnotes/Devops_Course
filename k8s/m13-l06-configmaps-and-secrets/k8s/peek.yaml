@@ -1,0 +1,17 @@
+# staged on purpose: a pod that prints a Secret it was never allowed to "get"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: peek
+spec:
+  restartPolicy: Never
+  containers:
+  - name: c
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo $P"]
+    env:
+    - name: P
+      valueFrom:
+        secretKeyRef:
+          name: db-creds
+          key: password

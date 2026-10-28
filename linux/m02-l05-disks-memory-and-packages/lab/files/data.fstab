@@ -1,0 +1,2 @@
+# <device>  <mount point>  <type>  <options>                          <dump>  <pass>
+tmpfs        /data          tmpfs   size=64m,nr_inodes=4096,mode=755   0       0

@@ -1,0 +1,9 @@
+{
+  "role_type": "jwt",
+  "user_claim": "sub",
+  "bound_audiences": "vault.lab",
+  "bound_claims_type": "glob",
+  "bound_claims": {"sub": "repo:ci-admin/allcsvideos-ops:*"},
+  "token_policies": "ops-deploy",
+  "token_ttl": "5m"
+}

@@ -1,0 +1,50 @@
+# Course Copilot in prod. IMAGE_REF is filled in by the pipeline's deploy job: image@digest, never a tag.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: copilot
+  template:
+    metadata:
+      labels:
+        app: copilot
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: copilot
+        image: IMAGE_REF
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {cpu: 500m, memory: 192Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot
+  namespace: prod
+spec:
+  selector:
+    app: copilot
+  ports:
+  - port: 80
+    targetPort: 8000

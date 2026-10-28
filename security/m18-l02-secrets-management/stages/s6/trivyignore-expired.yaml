@@ -1,0 +1,5 @@
+# Exceptions to the dependency gate. Every entry: the ID, why, who, and an expiry date.
+vulnerabilities:
+  - id: CVE-2020-14343
+    statement: Only yaml.SafeLoader is used, so the unsafe loader is not reachable. Priya, 2026-10-10.
+    expired_at: 2026-10-17

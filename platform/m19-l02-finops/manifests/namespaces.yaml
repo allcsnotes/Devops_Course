@@ -1,0 +1,23 @@
+# allcsvideos namespaces: one per environment, labelled for cost allocation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allcs-prod
+  labels:
+    project: allcsvideos
+    env: prod
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: allcs-dev
+  labels:
+    project: allcsvideos
+    env: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: loadgen
+  labels:
+    project: lab

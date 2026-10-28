@@ -1,0 +1,3 @@
+{"epoch": 1792623033.03, "status": "investigating", "component": "Course catalog", "state": "partial", "message": "We are investigating errors when loading the course list. Video playback and checkout are working normally. Next update in 15 minutes.", "ts": "04:20:33"}
+{"epoch": 1792623125.57, "status": "monitoring", "component": "Course catalog", "state": "operational", "message": "We rolled back a change that caused the errors. The course list is loading again. We are monitoring.", "ts": "04:22:05"}
+{"epoch": 1792623156.13, "status": "resolved", "component": "Course catalog", "state": "operational", "message": "This incident has been resolved. The course list is loading normally for everyone. We will publish what happened and what we are changing.", "ts": "04:22:36"}

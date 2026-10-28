@@ -1,0 +1,11 @@
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - secretbox:                 # new writes: encrypted with key1
+          keys:
+            - name: key1
+              secret: KEY          # 32 random bytes, base64 (filled in by sed)
+      - identity: {}               # can still read old plain-text data

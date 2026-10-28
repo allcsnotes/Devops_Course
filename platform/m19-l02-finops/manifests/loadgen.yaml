@@ -1,0 +1,31 @@
+# simulated allcsvideos users (lab only): open-loop requests to every prod service, a trickle to dev
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+  namespace: loadgen
+  labels: {app: users, project: lab}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: users}
+  template:
+    metadata:
+      labels: {app: users, project: lab}
+    spec:
+      containers:
+      - name: users
+        image: allcsvideos-traffic:1.0
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {memory: 256Mi}
+        command: ["sh", "-c"]
+        args:
+        - |
+          H=86400
+          python traffic.py "http://api.allcs-prod/recommend?n=40000" $H 20 /tmp/api > /tmp/api.log &
+          python traffic.py "http://catalog.allcs-prod/recommend?n=4000" $H 10 /tmp/catalog > /tmp/catalog.log &
+          python traffic.py "http://storefront.allcs-prod/" $H 10 /tmp/web > /tmp/web.log &
+          python traffic.py "http://copilot.allcs-prod/recommend?n=40000" $H 2 /tmp/copilot > /tmp/copilot.log &
+          python traffic.py "http://api.allcs-dev/recommend?n=40000" $H 1 /tmp/devapi > /tmp/devapi.log &
+          wait

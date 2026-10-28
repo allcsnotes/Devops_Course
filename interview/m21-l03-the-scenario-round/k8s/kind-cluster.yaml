@@ -1,0 +1,19 @@
+# kind-cluster.yaml (M21-L03, copied from M20-B03): ONE node (control plane that also runs the workloads), no host port mappings.
+# Longer leader-election timings keep the single control plane stable on a busy laptop (lesson from M14-L06).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  controllerManager:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane

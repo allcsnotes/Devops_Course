@@ -1,0 +1,8 @@
+---
+# site.yml: the catalog API on the VM fleet (trimmed from M12-B01 to what this migration needs)
+- name: Catalog API servers
+  hosts: web
+  become: true
+  serial: 1                       # one server at a time: the other keeps serving
+  roles:
+    - api

@@ -1,0 +1,25 @@
+# Least privilege: the catalog may read ONE ConfigMap, in its own namespace, and nothing else.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: catalog-config-reader
+  namespace: catalog
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["catalog-config"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: catalog-config-reader
+  namespace: catalog
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: catalog-config-reader
+subjects:
+- kind: ServiceAccount
+  name: catalog
+  namespace: catalog

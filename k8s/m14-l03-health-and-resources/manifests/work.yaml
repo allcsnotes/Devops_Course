@@ -1,0 +1,31 @@
+# the same API twice: one with a CPU limit of 100m, one with a request only
+apiVersion: v1
+kind: Pod
+metadata:
+  name: work-limited
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: work-unlimited
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        memory: 128Mi

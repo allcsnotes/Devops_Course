@@ -1,0 +1,33 @@
+# Stage 4 (M08-L02): a lint job next to test. Neither needs the other, so they run in parallel.
+name: ci
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hc/**"
+      - ".github/**"
+  pull_request:
+    paths:
+      - "hc/**"
+      - ".github/**"
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Syntax-check the scripts
+        run: |
+          for f in hc/bin/hc hc/*.sh hc/lib/*.sh hc/tests/*.sh; do
+            bash -n "$f"
+          done
+          python -m py_compile hc/lib/*.py
+          echo "lint ok, $(python --version)"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the hc tests
+        run: bash hc/tests/run.sh

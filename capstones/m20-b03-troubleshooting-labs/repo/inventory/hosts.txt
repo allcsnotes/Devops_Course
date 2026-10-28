@@ -1,0 +1,4 @@
+# allcsvideos lab inventory (source of truth for addresses)
+web-01   10.0.203.10   nginx + allcs-api
+db-01    10.0.203.20   PostgreSQL 18
+ns1      10.0.203.53   BIND 9, allcsvideos.test

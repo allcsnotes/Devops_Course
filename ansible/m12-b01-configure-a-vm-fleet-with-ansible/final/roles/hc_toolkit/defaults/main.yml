@@ -1,0 +1,13 @@
+---
+# the health-check toolkit from module 3, build 1. Override these per group or host.
+hc_disk_warn: 80
+hc_disk_crit: 90
+hc_mem_warn: 20
+hc_mem_crit: 10
+hc_load_warn: 1.5
+hc_load_crit: 3
+hc_mounts: [/]
+hc_services: [ssh]
+hc_endpoints: []
+# the chat webhook is a secret: set hc_webhook_url from the vault (group_vars/all/vault.yml)
+hc_webhook_url: ""

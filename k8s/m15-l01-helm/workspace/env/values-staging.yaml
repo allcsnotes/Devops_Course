@@ -1,0 +1,15 @@
+# staging: one small pod, the newest build, debug logs
+replicaCount: 1
+image:
+  tag: "2.5.0"
+config:
+  logLevel: DEBUG
+ingress:
+  enabled: true
+  host: staging.allcsvideos.test
+resources:
+  requests:
+    cpu: 25m
+    memory: 48Mi
+  limits:
+    memory: 96Mi

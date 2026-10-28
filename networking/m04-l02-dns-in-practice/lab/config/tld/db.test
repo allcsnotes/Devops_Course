@@ -1,0 +1,8 @@
+; the lab .test TLD zone: delegates allcsvideos.test to ns1
+$TTL 86400
+test.                  IN SOA  tld-ns.test. hostmaster.tld-ns.test. ( 2026102001 1800 900 604800 86400 )
+test.                  IN NS   tld-ns.test.
+tld-ns.test.           IN A    10.0.53.3
+root-ns.test.          IN A    10.0.53.2
+allcsvideos.test.      IN NS   ns1.allcsvideos.test.
+ns1.allcsvideos.test.  IN A    10.0.53.10

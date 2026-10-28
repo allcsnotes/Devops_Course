@@ -1,0 +1,41 @@
+---
+# rolling.yml: ship a new Course Copilot release with zero downtime.
+# A quarter of the web servers at a time: out of the load balancer, update, health check, back in.
+- name: Rolling update of Course Copilot
+  hosts: web
+  become: true
+  serial: "25%"
+  max_fail_percentage: 0
+  pre_tasks:
+    - name: Which release is live here?
+      ansible.builtin.stat:
+        path: /opt/copilot/current
+      register: live
+
+    - name: Remember it
+      ansible.builtin.set_fact:
+        copilot_live: "{{ live.stat.lnk_source | default('none') | basename }}"
+
+    - name: Take this server out of the load balancer
+      ansible.builtin.include_tasks: tasks/lb-member.yml
+      vars:
+        lb_member: out
+      when: copilot_live != copilot_version
+
+  roles:
+    - app
+
+  post_tasks:
+    - name: Check it end to end, from the load balancer
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/health"
+      delegate_to: "{{ groups['lb'][0] }}"
+      register: via_lb
+      until: via_lb.status == 200 and via_lb.json.version == copilot_version
+      retries: 10
+      delay: 1
+
+    - name: Put it back into the load balancer
+      ansible.builtin.include_tasks: tasks/lb-member.yml
+      vars:
+        lb_member: in

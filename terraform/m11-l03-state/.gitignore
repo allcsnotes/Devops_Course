@@ -1,0 +1,4 @@
+# Terraform state and local working folder
+*.tfstate
+*.tfstate.*
+.terraform/

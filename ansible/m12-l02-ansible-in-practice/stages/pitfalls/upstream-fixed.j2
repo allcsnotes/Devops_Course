@@ -1,0 +1,6 @@
+#jinja2: lstrip_blocks: True
+upstream api {
+    {% for backend in api_backends %}
+    server {{ backend }};
+    {% endfor %}
+}

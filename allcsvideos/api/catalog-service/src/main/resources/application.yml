@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: catalog-service
+  config:
+    import: optional:configtree:/etc/config/   # the ConfigMap: one file per key
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:5432/catalog
+    username: catalog
+    # password: SPRING_DATASOURCE_PASSWORD, from the Secret
+    hikari:
+      initialization-fail-timeout: 60000   # ms: on a fresh cluster, wait for Postgres
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}            # M07-B01: the course-list cache
+  cache:
+    redis:
+      time-to-live: 60s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:kafka:9092}   # the Service in this namespace
+    consumer:
+      auto-offset-reset: earliest
+      properties:
+        session.timeout.ms: 10000
+        heartbeat.interval.ms: 3000
+    producer:
+      properties:
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 3000
+        max.block.ms: 3000
+    listener:
+      observation-enabled: true
+server:
+  port: 8080
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    redis:
+      enabled: false         # M07-B01: Redis is only a cache, so it never makes catalog unhealthy
+  info:
+    env:
+      enabled: true          # info.* properties show in /actuator/info
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      otlp:
+        enabled: false     # no trace backend here: ids in logs only
+  opentelemetry:
+    map-environment-variables: false   # ignore OTEL_* (BuildKit sets them)
+  otlp:
+    metrics:
+      export:
+        enabled: false
+info:
+  version: ${APP_VERSION:dev}          # the git sha, from the image build
+  environment: ${app.environment:local}  # a string, not the configtree file
+logging:
+  level:
+    org.springframework.cache: TRACE   # M07-B01: one line per cache hit or miss
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN

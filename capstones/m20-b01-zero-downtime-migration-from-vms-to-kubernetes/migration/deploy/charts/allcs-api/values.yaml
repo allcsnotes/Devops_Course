@@ -1,0 +1,17 @@
+# Defaults for a developer's cluster. Production overrides live in values-prod.yaml.
+replicas: 1
+image:
+  repository: allcs-api
+  tag: "2.4.0"
+db:
+  host: 10.0.201.20
+  pool: 10                          # connections each pod opens at startup
+  passwordSecret: allcs-api-db      # Secret with key password (created from the vault, never in Git)
+session:
+  existingSecret: ""                # production: a Secret with key "key", created from the vault
+  devKey: dev-only-session-key      # laptops: without existingSecret the chart makes its own Secret
+resources:
+  requests: {cpu: 250m, memory: 96Mi}
+  limits: {cpu: 500m, memory: 160Mi}
+service:
+  nodePort: 30080

@@ -1,0 +1,191 @@
+Our CI job 'deps' failed. Here is the full job log. Why did it fail, and what exactly should I change to fix it?
+
+2026-10-21T16:50:25.6142122Z runner-01(version:v5.1.1)
+2026-10-21T16:50:25.6142181Z ::group::Runner Information
+2026-10-21T16:50:25.6142187Z Runner labels: ubuntu-latest
+2026-10-21T16:50:25.6142191Z Task: 3
+2026-10-21T16:50:25.6142193Z Job: deps
+2026-10-21T16:50:25.6142197Z Repository: allcsvideos/allcsvideos-platform
+2026-10-21T16:50:25.6142201Z Triggered by event: pull_request
+2026-10-21T16:50:25.6142204Z ::endgroup::
+2026-10-21T16:50:25.6142207Z ::group::Operating System
+2026-10-21T16:50:25.6142210Z Alpine Linux v3.24
+2026-10-21T16:50:25.6142213Z linux/arm64
+2026-10-21T16:50:25.6142215Z ::endgroup::
+2026-10-21T16:50:25.6145541Z workflow prepared
+2026-10-21T16:50:25.6252645Z ::group::Starting job container
+2026-10-21T16:50:25.6252801Z image: gitea/runner-images:ubuntu-24.04-v26.10.01
+2026-10-21T16:50:25.6252833Z name: GITEA-ACTIONS-TASK-3-WORKFLOW-security-JOB-deps-deps-0ba84a737c0fa572a96a82fc4c944da19a45555890825df9ea4c7dcb0367eac2
+2026-10-21T16:50:25.6253162Z network: do-m18l01-net
+2026-10-21T16:50:25.7273978Z docker pull image=gitea/runner-images:ubuntu-24.04-v26.10.01 platform= username= forcePull=false
+2026-10-21T16:50:25.7504668Z docker create image=gitea/runner-images:ubuntu-24.04-v26.10.01 platform= entrypoint=["sleep" "10800"] cmd=[] network="do-m18l01-net"
+2026-10-21T16:50:25.8803961Z docker run image=gitea/runner-images:ubuntu-24.04-v26.10.01 platform= entrypoint=["sleep" "10800"] cmd=[] network="do-m18l01-net"
+2026-10-21T16:50:26.1670505Z ::endgroup::
+2026-10-21T16:50:26.1869463Z Prepare all required actions
+2026-10-21T16:50:26.8038383Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-21T16:50:26.8038667Z Complete job name: deps
+2026-10-21T16:50:26.8491432Z ::group::Run actions/checkout@v4
+2026-10-21T16:50:27.2818780Z ::add-matcher::/var/run/act/actions/0171910b83740495f3b9f6112ecd5f7772540e77732909d2c22c31fac9fc0569/dist/problem-matcher.json
+2026-10-21T16:50:27.2819160Z Syncing repository: allcsvideos/allcsvideos-platform
+2026-10-21T16:50:27.2821586Z ::group::Getting Git version info
+2026-10-21T16:50:27.2821642Z Working directory is '/workspace/allcsvideos/allcsvideos-platform'
+2026-10-21T16:50:27.2844507Z [command]/usr/bin/git version
+2026-10-21T16:50:27.3016940Z git version 2.55.0
+2026-10-21T16:50:27.3044099Z ::endgroup::
+2026-10-21T16:50:27.3078712Z Temporarily overriding HOME='/tmp/9c43b02c-7170-473f-b844-aacb2bd78071' before making global git config changes
+2026-10-21T16:50:27.3079315Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T16:50:27.3080100Z [command]/usr/bin/git config --global --add safe.directory /workspace/allcsvideos/allcsvideos-platform
+2026-10-21T16:50:27.3112045Z Deleting the contents of '/workspace/allcsvideos/allcsvideos-platform'
+2026-10-21T16:50:27.3118995Z ::group::Initializing the repository
+2026-10-21T16:50:27.3123972Z [command]/usr/bin/git init /workspace/allcsvideos/allcsvideos-platform
+2026-10-21T16:50:27.3225039Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-21T16:50:27.3225271Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-21T16:50:27.3225290Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-21T16:50:27.3225314Z hint: call:
+2026-10-21T16:50:27.3225325Z hint:
+2026-10-21T16:50:27.3225358Z hint: 	git config --global init.defaultBranch <name>
+2026-10-21T16:50:27.3225369Z hint:
+2026-10-21T16:50:27.3225378Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-21T16:50:27.3225389Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-21T16:50:27.3225413Z hint:
+2026-10-21T16:50:27.3225423Z hint: 	git branch -m <name>
+2026-10-21T16:50:27.3225430Z hint:
+2026-10-21T16:50:27.3225438Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-21T16:50:27.3230268Z Initialized empty Git repository in /workspace/allcsvideos/allcsvideos-platform/.git/
+2026-10-21T16:50:27.3233965Z [command]/usr/bin/git remote add origin http://gitea:3000/allcsvideos/allcsvideos-platform
+2026-10-21T16:50:27.3264725Z ::endgroup::
+2026-10-21T16:50:27.3264763Z ::group::Disabling automatic garbage collection
+2026-10-21T16:50:27.3266732Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-21T16:50:27.3285691Z ::endgroup::
+2026-10-21T16:50:27.3285959Z ::group::Setting up auth
+2026-10-21T16:50:27.3288620Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T16:50:27.3306387Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T16:50:27.3978408Z [command]/usr/bin/git config --local --name-only --get-regexp http\.http\:\/\/gitea\:3000\/\.extraheader
+2026-10-21T16:50:27.4003935Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.http\:\/\/gitea\:3000\/\.extraheader' && git config --local --unset-all 'http.http://gitea:3000/.extraheader' || :"
+2026-10-21T16:50:27.4231300Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T16:50:27.4258340Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T16:50:27.4450193Z [command]/usr/bin/git config --local http.http://gitea:3000/.extraheader AUTHORIZATION: basic ***
+2026-10-21T16:50:27.4544330Z ::endgroup::
+2026-10-21T16:50:27.4546004Z ::group::Fetching the repository
+2026-10-21T16:50:27.4546100Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3b25847a075d0b1d4d5addcd4dc4bfd57e4a3b13:refs/remotes/pull/1/head
+2026-10-21T16:50:27.5901108Z From http://gitea:3000/allcsvideos/allcsvideos-platform
+2026-10-21T16:50:27.5901928Z  * [new ref]         3b25847a075d0b1d4d5addcd4dc4bfd57e4a3b13 -> pull/1/head
+2026-10-21T16:50:27.5940064Z ::endgroup::
+2026-10-21T16:50:27.5940150Z ::group::Determining the checkout info
+2026-10-21T16:50:27.5963087Z ::endgroup::
+2026-10-21T16:50:27.5968639Z [command]/usr/bin/git sparse-checkout disable
+2026-10-21T16:50:27.6002823Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-21T16:50:27.6055064Z ::group::Checking out the ref
+2026-10-21T16:50:27.6055135Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1/head
+2026-10-21T16:50:27.6100567Z Note: switching to 'refs/remotes/pull/1/head'.
+2026-10-21T16:50:27.6100773Z 
+2026-10-21T16:50:27.6100825Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-21T16:50:27.6100858Z changes and commit them, and you can discard any commits you make in this
+2026-10-21T16:50:27.6100889Z state without impacting any branches by switching back to a branch.
+2026-10-21T16:50:27.6100936Z 
+2026-10-21T16:50:27.6100950Z If you want to create a new branch to retain commits you create, you may
+2026-10-21T16:50:27.6100972Z do so (now or later) by using -c with the switch command. Example:
+2026-10-21T16:50:27.6100990Z 
+2026-10-21T16:50:27.6101028Z   git switch -c <new-branch-name>
+2026-10-21T16:50:27.6101041Z 
+2026-10-21T16:50:27.6101062Z Or undo this operation with:
+2026-10-21T16:50:27.6101097Z 
+2026-10-21T16:50:27.6101115Z   git switch -
+2026-10-21T16:50:27.6101128Z 
+2026-10-21T16:50:27.6101146Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-21T16:50:27.6101163Z 
+2026-10-21T16:50:27.6101268Z HEAD is now at 3b25847 security: gates for secrets, code, dependencies and infra
+2026-10-21T16:50:27.6103067Z ::endgroup::
+2026-10-21T16:50:27.6133435Z [command]/usr/bin/git log -1 --format=%H
+2026-10-21T16:50:27.6157640Z 3b25847a075d0b1d4d5addcd4dc4bfd57e4a3b13
+2026-10-21T16:50:27.6160317Z ::remove-matcher owner=checkout-git::
+2026-10-21T16:50:27.6397930Z ::endgroup::
+2026-10-21T16:50:47.3081480Z 
+2026-10-21T16:50:47.3086256Z Report Summary
+2026-10-21T16:50:47.3086427Z 
+2026-10-21T16:50:47.3086962Z ┌──────────────────┬──────┬─────────────────┐
+2026-10-21T16:50:47.3087029Z │      Target      │ Type │ Vulnerabilities │
+2026-10-21T16:50:47.3087047Z ├──────────────────┼──────┼─────────────────┤
+2026-10-21T16:50:47.3087059Z │ requirements.txt │ pip  │        2        │
+2026-10-21T16:50:47.3087070Z └──────────────────┴──────┴─────────────────┘
+2026-10-21T16:50:47.3087081Z Legend:
+2026-10-21T16:50:47.3087267Z - '-': Not scanned
+2026-10-21T16:50:47.3087283Z - '0': Clean (no security findings detected)
+2026-10-21T16:50:47.3090365Z 
+2026-10-21T16:50:47.3090396Z 
+2026-10-21T16:50:47.3090539Z For OSS Maintainers: VEX Notice
+2026-10-21T16:50:47.3090632Z --------------------------------
+2026-10-21T16:50:47.3094527Z If you're an OSS maintainer and Trivy has detected vulnerabilities in your project that you believe are not actually exploitable, consider issuing a VEX (Vulnerability Exploitability eXchange) statement.
+2026-10-21T16:50:47.3094777Z VEX allows you to communicate the actual status of vulnerabilities in your project, improving security transparency and reducing false positives for your users.
+2026-10-21T16:50:47.3094953Z Learn more and start using VEX: https://trivy.dev/docs/v0.76/guide/supply-chain/vex/repo#publishing-vex-documents
+2026-10-21T16:50:47.3094973Z 
+2026-10-21T16:50:47.3095291Z To disable this notice, set the TRIVY_DISABLE_VEX_NOTICE environment variable.
+2026-10-21T16:50:47.3095309Z 
+2026-10-21T16:50:47.3095315Z 
+2026-10-21T16:50:47.3095328Z requirements.txt (pip)
+2026-10-21T16:50:47.3095336Z ======================
+2026-10-21T16:50:47.3095349Z Total: 2 (UNKNOWN: 0, LOW: 0, MEDIUM: 1, HIGH: 0, CRITICAL: 1)
+2026-10-21T16:50:47.3095387Z 
+2026-10-21T16:50:47.3098034Z ┌──────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬────────────────────────────────────────────────────────┐
+2026-10-21T16:50:47.3098092Z │ Library  │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                         Title                          │
+2026-10-21T16:50:47.3098115Z ├──────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼────────────────────────────────────────────────────────┤
+2026-10-21T16:50:47.3098131Z │ pyyaml   │ CVE-2020-14343 │ CRITICAL │ fixed  │ 5.3.1             │ 5.4           │ PyYAML: incomplete fix for CVE-2020-1747               │
+2026-10-21T16:50:47.3098147Z │          │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2020-14343             │
+2026-10-21T16:50:47.3098197Z ├──────────┼────────────────┼──────────┤        ├───────────────────┼───────────────┼────────────────────────────────────────────────────────┤
+2026-10-21T16:50:47.3098212Z │ requests │ CVE-2026-25645 │ MEDIUM   │        │ 2.32.4            │ 2.33.0        │ requests: Requests: Security bypass due to predictable │
+2026-10-21T16:50:47.3098228Z │          │                │          │        │                   │               │ temporary file creation                                │
+2026-10-21T16:50:47.3098239Z │          │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-25645             │
+2026-10-21T16:50:47.3098846Z └──────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴────────────────────────────────────────────────────────┘
+2026-10-21T16:51:02.4032607Z 
+2026-10-21T16:51:02.4035410Z Report Summary
+2026-10-21T16:51:02.4035516Z 
+2026-10-21T16:51:02.4035690Z ┌──────────────────┬──────┬─────────────────┐
+2026-10-21T16:51:02.4035761Z │      Target      │ Type │ Vulnerabilities │
+2026-10-21T16:51:02.4035775Z ├──────────────────┼──────┼─────────────────┤
+2026-10-21T16:51:02.4035787Z │ requirements.txt │ pip  │        1        │
+2026-10-21T16:51:02.4035798Z └──────────────────┴──────┴─────────────────┘
+2026-10-21T16:51:02.4035810Z Legend:
+2026-10-21T16:51:02.4035847Z - '-': Not scanned
+2026-10-21T16:51:02.4035861Z - '0': Clean (no security findings detected)
+2026-10-21T16:51:02.4035869Z 
+2026-10-21T16:51:02.4035875Z 
+2026-10-21T16:51:02.4035887Z For OSS Maintainers: VEX Notice
+2026-10-21T16:51:02.4035939Z --------------------------------
+2026-10-21T16:51:02.4036577Z If you're an OSS maintainer and Trivy has detected vulnerabilities in your project that you believe are not actually exploitable, consider issuing a VEX (Vulnerability Exploitability eXchange) statement.
+2026-10-21T16:51:02.4036633Z VEX allows you to communicate the actual status of vulnerabilities in your project, improving security transparency and reducing false positives for your users.
+2026-10-21T16:51:02.4036774Z Learn more and start using VEX: https://trivy.dev/docs/v0.76/guide/supply-chain/vex/repo#publishing-vex-documents
+2026-10-21T16:51:02.4036788Z 
+2026-10-21T16:51:02.4036943Z To disable this notice, set the TRIVY_DISABLE_VEX_NOTICE environment variable.
+2026-10-21T16:51:02.4036957Z 
+2026-10-21T16:51:02.4036964Z 
+2026-10-21T16:51:02.4036971Z requirements.txt (pip)
+2026-10-21T16:51:02.4036979Z ======================
+2026-10-21T16:51:02.4036986Z Total: 1 (HIGH: 0, CRITICAL: 1)
+2026-10-21T16:51:02.4036993Z 
+2026-10-21T16:51:02.4037395Z ┌─────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────┬────────────────────────────────────────────┐
+2026-10-21T16:51:02.4037415Z │ Library │ Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                   Title                    │
+2026-10-21T16:51:02.4037430Z ├─────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────┼────────────────────────────────────────────┤
+2026-10-21T16:51:02.4037485Z │ pyyaml  │ CVE-2020-14343 │ CRITICAL │ fixed  │ 5.3.1             │ 5.4           │ PyYAML: incomplete fix for CVE-2020-1747   │
+2026-10-21T16:51:02.4037499Z │         │                │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2020-14343 │
+2026-10-21T16:51:02.4037511Z └─────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────┴────────────────────────────────────────────┘
+2026-10-21T16:51:03.0281386Z ##[error]Process completed with exit code 1.
+2026-10-21T16:51:03.1151428Z Run Post actions/checkout@v4
+2026-10-21T16:51:03.1359163Z docker exec cmd=[node --preserve-symlinks-main /var/run/act/actions/0171910b83740495f3b9f6112ecd5f7772540e77732909d2c22c31fac9fc0569/dist/index.js] user= workdir=
+2026-10-21T16:51:03.4387979Z [command]/usr/bin/git version
+2026-10-21T16:51:03.4471423Z git version 2.55.0
+2026-10-21T16:51:03.4480880Z ***
+2026-10-21T16:51:03.4494925Z Temporarily overriding HOME='/tmp/3f0aea37-d110-44a0-a50a-afa7bbdb08a7' before making global git config changes
+2026-10-21T16:51:03.4495362Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T16:51:03.4498157Z [command]/usr/bin/git config --global --add safe.directory /workspace/allcsvideos/allcsvideos-platform
+2026-10-21T16:51:03.4532457Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T16:51:03.4603809Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T16:51:03.5904220Z [command]/usr/bin/git config --local --name-only --get-regexp http\.http\:\/\/gitea\:3000\/\.extraheader
+2026-10-21T16:51:03.6016060Z http.http://gitea:3000/.extraheader
+2026-10-21T16:51:03.6067639Z [command]/usr/bin/git config --local --unset-all http.http://gitea:3000/.extraheader
+2026-10-21T16:51:03.6150493Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.http\:\/\/gitea\:3000\/\.extraheader' && git config --local --unset-all 'http.http://gitea:3000/.extraheader' || :"
+2026-10-21T16:51:03.6592532Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T16:51:03.6633601Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T16:51:03.7380385Z Success - Post actions/checkout@v4
+2026-10-21T16:51:03.7739365Z Cleaning up container for job deps
+2026-10-21T16:51:04.0513730Z Job failed
+2026-10-21T16:51:04.0514967Z job 'deps' failed

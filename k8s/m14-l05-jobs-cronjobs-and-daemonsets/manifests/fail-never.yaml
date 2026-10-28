@@ -1,0 +1,21 @@
+# STAGED FAILURE: the report script always exits 1
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: report-never
+  namespace: allcsvideos
+  labels: {app: report, course: devops}
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels: {app: report, course: devops}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: report
+        image: busybox:1.37.0
+        command: ["sh", "-c", "echo connecting to db...; echo ERROR: database not reachable; exit 1"]
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {memory: 32Mi}

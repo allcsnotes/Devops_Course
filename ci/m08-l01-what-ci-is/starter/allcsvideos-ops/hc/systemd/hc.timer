@@ -1,0 +1,10 @@
+[Unit]
+Description=Run hc every 2 minutes
+
+[Timer]
+OnCalendar=*:0/2
+AccuracySec=10s
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

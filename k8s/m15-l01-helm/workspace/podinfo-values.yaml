@@ -1,0 +1,8 @@
+# our settings for the public podinfo chart (only what differs from its defaults)
+ui:
+  message: "Hello from allcsvideos"
+  color: "#1a7cff"
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi

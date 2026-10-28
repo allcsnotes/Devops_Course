@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-old
+spec:
+  serviceName: db-old              # the headless Service that names the pods
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-old
+  template:
+    metadata:
+      labels:
+        app: db-old
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:18.6-alpine3.24
+        env:
+        - name: POSTGRES_USER
+          value: catalog
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-creds
+              key: password
+        ports:
+        - name: postgres
+          containerPort: 5432
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "catalog", "-h", "127.0.0.1"]
+          periodSeconds: 2
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data   # staged: the pre-18 path
+  volumeClaimTemplates:        # one PVC per pod: data-db-0, data-db-1, ...
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 1Gi

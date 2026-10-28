@@ -1,0 +1,7 @@
+Lab-only Gitea accounts for the M19-L03 lab (FAKE passwords, used only inside this throwaway lab, never real):
+asha        site admin, owner of the allcsvideos organisation (platform team)     password: fake-lab-pass-asha
+priya       developer, team devs (write)                                          password: fake-lab-pass-priya
+rahul       senior SRE, team releasers (write; the only approvers for main)       password: fake-lab-pass-rahul
+ci-bot      the CI pipeline account, team devs; may push to main for envs/dev only password: fake-lab-pass-ci-bot
+deploy-bot  read-only account the GitOps agents pull with, team readers (read)    password: fake-lab-pass-deploy-bot
+Tokens are generated inside the lab and written to files; they are never printed.

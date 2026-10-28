@@ -1,0 +1,25 @@
+# staged on purpose: a liveness probe that also checks the database
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deep
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-deep
+  template:
+    metadata:
+      labels:
+        app: api-deep
+    spec:
+      containers:
+      - name: api
+        image: health-api:1.0.0
+        livenessProbe:
+          httpGet:
+            path: /healthz/deep    # opens a connection to db:5432
+            port: 8080
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3

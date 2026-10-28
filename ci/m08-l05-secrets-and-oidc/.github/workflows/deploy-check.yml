@@ -1,0 +1,18 @@
+# deploy-check.yml (M08-L05): can this job get an OIDC token? On GitHub, with "id-token: write", both are set.
+# (On Gitea 28.1.0 neither is: Gitea issues no OIDC tokens.)
+name: deploy-check
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write   # this job may request an OIDC token
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Can this job get an OIDC token?
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL:+<set>}${ACTIONS_ID_TOKEN_REQUEST_URL:-<not set>}"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+<set>}${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-<not set>}"

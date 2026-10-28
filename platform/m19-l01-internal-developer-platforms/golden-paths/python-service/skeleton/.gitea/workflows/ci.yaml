@@ -1,0 +1,24 @@
+# The golden-path pipeline (Gitea Actions runs the same workflow syntax as GitHub Actions)
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest -v
+  dockerfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker://hadolint/hadolint:v2.15.1
+        with:
+          entrypoint: /bin/hadolint
+          args: Dockerfile
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker://alpine/helm:4.3.1
+        with:
+          args: lint deploy/chart

@@ -1,0 +1,2 @@
+# {{ ansible_managed }}
+{{ {'host': inventory_hostname, 'log_level': app_log_level, 'features': app_features} | to_nice_yaml(indent=2) }}

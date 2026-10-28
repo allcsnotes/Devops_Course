@@ -1,0 +1,9 @@
+---
+- name: reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: restart allcs-api
+  ansible.builtin.systemd_service:
+    name: allcs-api
+    state: restarted

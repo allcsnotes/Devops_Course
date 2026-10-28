@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: invoices
+spec:
+  storageClassName: standard-retain
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: billing
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo 'invoice 1042: 499 INR' > /invoices/1042.txt; sleep 3600"]
+    volumeMounts:
+    - name: invoices
+      mountPath: /invoices
+  volumes:
+  - name: invoices
+    persistentVolumeClaim:
+      claimName: invoices

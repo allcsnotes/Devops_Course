@@ -1,0 +1,26 @@
+# kind-cluster.yaml (M14-L06): one control-plane node (lab-control-plane) and one worker (lab-worker).
+# Longer leader-election timings keep the single control plane stable when your laptop is busy
+# (with the 5 s defaults, a slow machine can make the controller manager and scheduler restart).
+# Created by lab/up.sh; delete with lab/down.sh (or: kind delete cluster --name lab).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lab
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  controllerManager:
+    extraArgs:
+    - {name: enable-hostpath-provisioner, value: "true"}
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+- role: worker
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

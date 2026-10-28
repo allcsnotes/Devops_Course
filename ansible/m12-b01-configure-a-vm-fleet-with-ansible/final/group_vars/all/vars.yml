@@ -1,0 +1,17 @@
+---
+# every server in the fleet
+ansible_user: asha
+# the bastion: the only address allowed to open SSH connections (in this lab, the control node itself)
+bastion_ip: 10.0.126.10
+
+# admins: a login, SSH key and sudo on every server (public keys are not secrets)
+admin_users:
+  - name: asha
+    comment: Asha (DevOps)
+    key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBe/h6HXy2n9/PxtLXAflx1Szxy6tymJpOndTcvY/IQ1 asha@example.com
+  - name: rahul
+    comment: Rahul (SRE)
+    key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIKJ1vHLkOOtu7uLK8uXMq2LNsmnDuIlTZvovdPxC7iD rahul@example.com
+
+# secrets come from the vault file next to this one, referenced by name
+hc_webhook_url: "{{ vault_hc_webhook_url }}"

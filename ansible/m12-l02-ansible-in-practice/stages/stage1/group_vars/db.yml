@@ -1,0 +1,4 @@
+# the database servers
+db_name: allcsvideos
+db_user: allcs_app
+db_password: demo-db-password-123   # FAKE demo value, still in plain text

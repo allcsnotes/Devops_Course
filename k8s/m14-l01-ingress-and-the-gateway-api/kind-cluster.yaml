@@ -1,0 +1,20 @@
+# kind-cluster.yaml (M14-L01): one control-plane node and one worker, Kubernetes v1.36.4
+# (cert-manager 1.21 supports Kubernetes up to 1.36, so this lesson uses the 1.36 node image).
+# Your laptop's 127.0.0.1:8480/8443 -> Traefik (Ingress) node ports 30480/30443,
+#                127.0.0.1:9480/9443 -> NGINX Gateway Fabric node ports 31480/31443.
+# High host ports, so nothing clashes with ports 80/443 on your laptop.
+# Create:  kind create cluster --config kind-cluster.yaml
+# Delete:  kind delete cluster --name lab
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lab
+nodes:
+- role: control-plane
+  image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+  extraPortMappings:
+  - {containerPort: 30480, hostPort: 8480, listenAddress: "127.0.0.1", protocol: TCP}
+  - {containerPort: 30443, hostPort: 8443, listenAddress: "127.0.0.1", protocol: TCP}
+  - {containerPort: 31480, hostPort: 9480, listenAddress: "127.0.0.1", protocol: TCP}
+  - {containerPort: 31443, hostPort: 9443, listenAddress: "127.0.0.1", protocol: TCP}
+- role: worker
+  image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed

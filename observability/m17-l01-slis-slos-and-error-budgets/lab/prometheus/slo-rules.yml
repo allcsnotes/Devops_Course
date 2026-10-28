@@ -1,0 +1,69 @@
+# Catalog API availability SLO: 99.9% of course-list requests succeed (not 5xx), rolling 30 days.
+# Valid events: GET /api/courses (health checks and scrapes are not user requests).  Bad events: status 5xx.
+groups:
+  - name: slo-catalog-sli
+    rules:
+      - record: job:slo_errors_per_request:ratio_rate5m
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[5m]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[5m]))
+      - record: job:slo_errors_per_request:ratio_rate30m
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[30m]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[30m]))
+      - record: job:slo_errors_per_request:ratio_rate1h
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[1h]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[1h]))
+      - record: job:slo_errors_per_request:ratio_rate2h
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[2h]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[2h]))
+      - record: job:slo_errors_per_request:ratio_rate6h
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[6h]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[6h]))
+      - record: job:slo_errors_per_request:ratio_rate1d
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[1d]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[1d]))
+      - record: job:slo_errors_per_request:ratio_rate3d
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[3d]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[3d]))
+      - record: job:slo_errors_per_request:ratio_rate30d
+        expr: |
+          sum by (job) (rate(http_requests_total{job="api", route="/api/courses", status=~"5.."}[30d]))
+            / sum by (job) (rate(http_requests_total{job="api", route="/api/courses"}[30d]))
+
+  - name: slo-catalog-budget
+    rules:
+      # the SLI itself: share of good requests over the SLO window
+      - record: job:slo_availability:ratio_rate30d
+        expr: 1 - job:slo_errors_per_request:ratio_rate30d
+
+      # error budget left: 1 = untouched, 0 = spent, below 0 = SLO missed
+      - record: job:slo_error_budget:remaining_ratio30d
+        expr: 1 - job:slo_errors_per_request:ratio_rate30d / (1 - 0.999)
+
+      # the same budget as a count of requests
+      - record: job:slo_requests:increase30d
+        expr: sum by (job) (increase(http_requests_total{job="api", route="/api/courses"}[30d]))
+      - record: job:slo_errors:increase30d
+        expr: sum by (job) (increase(http_requests_total{job="api", route="/api/courses", status=~"5.."}[30d]))
+
+      # burn rate: how fast the budget burns; 1 = gone in exactly 30 days
+      - record: job:slo_burn_rate:5m
+        expr: job:slo_errors_per_request:ratio_rate5m / (1 - 0.999)
+      - record: job:slo_burn_rate:1h
+        expr: job:slo_errors_per_request:ratio_rate1h / (1 - 0.999)
+      - record: job:slo_burn_rate:6h
+        expr: job:slo_errors_per_request:ratio_rate6h / (1 - 0.999)
+
+  - name: slo-catalog-latency
+    rules:
+      # latency SLO: 99% of course-list requests answered within 250 ms, rolling 30 days
+      - record: job:slo_latency_good:ratio_rate30d
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_bucket{job="api", route="/api/courses", le="0.25"}[30d]))
+            / sum by (job) (rate(http_request_duration_seconds_count{job="api", route="/api/courses"}[30d]))

@@ -1,0 +1,24 @@
+# Staged mistake: shop.allcsvideos.test has no DNS record yet
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop
+  annotations:
+    cert-manager.io/cluster-issuer: pebble
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - shop.allcsvideos.test
+    secretName: shop-tls
+  rules:
+  - host: shop.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: storefront
+            port:
+              name: http

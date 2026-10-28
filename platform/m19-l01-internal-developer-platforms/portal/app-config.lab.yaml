@@ -1,0 +1,44 @@
+# app-config.lab.yaml: the allcsvideos portal in the M19-L01 lab (loaded after app-config.yaml;
+# lab-only: guest sign-in, an in-memory database, plain HTTP inside one Docker network.
+app:
+  title: allcsvideos developer portal
+  baseUrl: http://backstage:7007
+
+organization:
+  name: allcsvideos
+
+backend:
+  baseUrl: http://backstage:7007
+  listen: ':7007'
+  database:
+    client: better-sqlite3
+    connection: ':memory:'        # lab only: the catalog is rebuilt from Git on every start
+  cors:
+    origin: http://backstage:7007
+  csp:
+    upgrade-insecure-requests: false   # lab only: plain HTTP on a private Docker network
+
+auth:
+  providers:
+    guest:
+      userEntityRef: user:default/priya
+      ownershipEntityRefs: [group:default/courses]
+      dangerouslyAllowOutsideDevelopment: true   # LAB ONLY: anyone who opens the page is "priya"
+
+integrations:
+  gitea:
+    - host: gitea:3000
+      baseUrl: http://gitea:3000
+      username: backstage-bot
+      password: ${GITEA_TOKEN}     # FAKE / lab-only token, mounted from a file, never printed
+
+catalog:
+  rules:
+    - allow: [Component, System, API, Resource, Location, Group, User, Template]
+  locations:
+    # the allcsvideos catalog lives in Git, next to the code it describes
+    - type: url
+      target: http://gitea:3000/allcsvideos/allcsvideos-platform/src/branch/main/catalog-info.yaml
+    # the platform team's golden paths
+    - type: url
+      target: http://gitea:3000/allcsvideos/golden-paths/src/branch/main/python-service/template.yaml

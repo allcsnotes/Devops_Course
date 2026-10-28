@@ -1,0 +1,13 @@
+---
+# both handlers listen to one topic; they run in the order they are written here
+- name: test nginx config
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  listen: nginx config changed
+
+- name: reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  listen: nginx config changed
+  when: not image_build

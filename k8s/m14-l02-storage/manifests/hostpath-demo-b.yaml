@@ -1,0 +1,19 @@
+# The same pod spec, pinned to the other worker.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: scratch-b
+spec:
+  nodeName: lab-worker2
+  containers:
+  - name: app
+    image: busybox:1.37.0
+    command: ["sh", "-c", "ls -l /scratch; sleep 3600"]
+    volumeMounts:
+    - name: scratch
+      mountPath: /scratch
+  volumes:
+  - name: scratch
+    hostPath:
+      path: /var/allcsvideos-scratch
+      type: DirectoryOrCreate

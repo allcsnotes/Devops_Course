@@ -1,0 +1,4 @@
+---
+# the load balancer is nginx too: run the nginx role first (and use its handlers)
+dependencies:
+  - role: nginx

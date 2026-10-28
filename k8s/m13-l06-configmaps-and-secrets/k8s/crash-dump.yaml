@@ -1,0 +1,17 @@
+# staged on purpose: a job that dumps its environment when it fails (a common "debug" habit)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash-dump
+spec:
+  restartPolicy: Never
+  containers:
+  - name: c
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo 'ERROR cannot reach database, environment was:'; env | grep -v -e PATH -e KUBERNETES; exit 1"]
+    env:
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-creds
+          key: password

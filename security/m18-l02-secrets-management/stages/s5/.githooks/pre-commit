@@ -1,0 +1,4 @@
+#!/bin/sh
+# Secret scan before every commit (turn it on once per clone: git config core.hooksPath .githooks).
+# gitleaks reads only what is staged; any finding stops the commit.
+exec gitleaks git --pre-commit --staged --redact --no-banner -v

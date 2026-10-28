@@ -1,0 +1,6 @@
+# a short-lived copy of dev for pull request 142, side by side with dev in one namespace
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../dev
+namePrefix: pr-142-

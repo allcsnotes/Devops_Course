@@ -1,0 +1,28 @@
+# STAGED: exit code 42 means "bad config": retrying can't help, so fail the Job at once
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: report-badconfig
+  namespace: allcsvideos
+  labels: {app: report, course: devops}
+spec:
+  backoffLimit: 6
+  podFailurePolicy:
+    rules:
+    - action: FailJob
+      onExitCodes:
+        containerName: report
+        operator: In
+        values: [42]
+  template:
+    metadata:
+      labels: {app: report, course: devops}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: report
+        image: busybox:1.37.0
+        command: ["sh", "-c", "echo 'REPORT_DAY is missing'; exit 42"]
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {memory: 32Mi}

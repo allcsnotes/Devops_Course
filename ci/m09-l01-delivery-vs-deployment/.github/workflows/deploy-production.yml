@@ -1,0 +1,77 @@
+# deploy-production.yml (M09-L01): the approval gate. Run it by hand (Actions > deploy-production > Run workflow)
+# with a digest that passed staging and a reason. The deploy job uses the GitHub Environment "production", which
+# requires a reviewer (public repo on the Free plan) and holds the production key, so the key only reaches the job
+# after someone approves. A rollback is the same workflow with an older digest.
+# Settings: repository variable STAGING_RECORD_URL; Environment "production" with variables HOST, SSH_PORT, URL,
+# KNOWN_HOSTS, the secret SSH_KEY, and the protection rule "Required reviewers".
+name: deploy-production
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: Image digest that passed staging (sha256:...)
+        required: true
+        type: string
+      reason:
+        description: Why are we deploying?
+        required: true
+        type: string
+
+concurrency: production
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      # inputs go into environment variables before any script uses them: typed text never becomes a command
+      DIGEST: ${{ inputs.digest }}
+      REASON: ${{ inputs.reason }}
+    steps:
+      - name: Who, what and why
+        run: |
+          echo "requested by: ${{ github.actor }}"
+          echo "digest:       $DIGEST"
+          echo "reason:       $REASON"
+
+      - name: Passed on staging?
+        run: |
+          curl -s ${{ vars.STAGING_RECORD_URL }} > staging.json
+          jq -e --arg d "$DIGEST" '[.history[] | select(.digest == $d and .smoke == "passed")] | first' staging.json \
+            || { echo "refused: $DIGEST never passed the staging smoke tests"; exit 1; }
+
+  deploy-production:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DIGEST: ${{ inputs.digest }}
+      URL: ${{ vars.URL }}
+    steps:
+      - name: SSH key and host key for production
+        env:
+          KEY: ${{ secrets.SSH_KEY }}
+          KNOWN: ${{ vars.KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        run: ssh -p ${{ vars.SSH_PORT }} deploy@${{ vars.HOST }} deploy $DIGEST run-${{ github.run_number }}
+
+      - name: Smoke test production
+        run: |
+          for i in $(seq 1 15); do curl -sf --connect-timeout 2 "$URL/health" && break; sleep 2; done; echo
+          curl -s "$URL/version" | tee version.json; echo
+          jq -e --arg d "$DIGEST" '.digest == $d and .environment == "production"' version.json
+
+      - name: Mark verified on production
+        if: success()
+        run: ssh -p ${{ vars.SSH_PORT }} deploy@${{ vars.HOST }} smoke $DIGEST passed
+
+      - name: Mark failed on production
+        if: failure()
+        run: ssh -p ${{ vars.SSH_PORT }} deploy@${{ vars.HOST }} smoke $DIGEST failed

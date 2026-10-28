@@ -1,0 +1,7 @@
+workflow-aggregator
+git
+docker-workflow
+configuration-as-code
+job-dsl
+junit
+pipeline-graph-view

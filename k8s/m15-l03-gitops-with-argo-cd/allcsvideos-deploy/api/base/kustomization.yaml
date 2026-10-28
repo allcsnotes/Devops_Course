@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- deployment.yaml
+- service.yaml
+- migrate-job.yaml
+- smoke-test.yaml
+labels:
+- pairs:
+    app.kubernetes.io/part-of: allcsvideos
+    course: devops
+configMapGenerator:
+- name: api-config
+  literals:
+  - APP_ENV=base
+  - LOG_LEVEL=INFO
+  - DB_HOST=postgres
+  - DB_USER=api
+  options:
+    annotations:
+      argocd.argoproj.io/sync-wave: "-1"

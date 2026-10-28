@@ -1,0 +1,19 @@
+# kind-cluster.yaml (M13-L05): one control-plane node and two workers.
+# Each node is a Docker container named <cluster>-<role>: lab-control-plane, lab-worker, lab-worker2.
+# Create:  kind create cluster --config kind-cluster.yaml
+# Delete:  kind delete cluster --name lab
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: lab
+nodes:
+- role: control-plane
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  extraPortMappings:        # your laptop's 127.0.0.1:30080 -> node port 30080 (the NodePort demo)
+  - containerPort: 30080
+    hostPort: 30080
+    listenAddress: "127.0.0.1"
+    protocol: TCP
+- role: worker
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+- role: worker
+  image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

@@ -1,0 +1,14 @@
+# Gitea runner (gitea/runner:5.1.1) config for the M19-L03 lab.
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 2
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: false
+container:
+  network: lab-net               # jobs reach http://gitea:3000
+  options: --label course=devops --label lesson=m19-l03 --memory 512m
+  docker_host: "-"               # the runner never hands your Docker socket to a job

@@ -1,0 +1,5 @@
+- hosts: db
+  become: yes
+  tasks:
+    - shell: apt-get install -y tree
+    - copy: content="Authorised staff only." dest=/etc/motd

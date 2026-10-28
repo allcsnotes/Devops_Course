@@ -1,0 +1,6 @@
+---
+nginx_worker_connections: 768
+nginx_server_name: "{{ inventory_hostname }}"
+api_backends: []
+# true while Packer bakes an image: nothing is started, there is no systemd yet
+image_build: false

@@ -1,0 +1,21 @@
+$schema: https://flagd.dev/schema/v0/flags.json
+flags:
+  copilot-answers:
+    state: ENABLED
+    variants:
+      "on": true
+      "off": false
+    defaultVariant: "on"
+    metadata:
+      type: ops
+      owner: asha
+  lesson-notes-v2:
+    state: ENABLED
+    variants:
+      "on": true
+      "off": false
+    defaultVariant: "off"
+    metadata:
+      type: release
+      owner: priya
+      expires: "2026-12-31"

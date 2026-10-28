@@ -1,0 +1,77 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: python-service
+  title: New Python service
+  description: A Python HTTP service with tests, Dockerfile, CI, Helm chart, Argo CD app and catalog entry
+  tags: [python, recommended]
+spec:
+  owner: group:platform
+  type: service
+
+  parameters:
+    - title: About the service
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Lowercase, used for the repository, the image and the Helm release
+          ui:field: EntityNamePicker
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+        owner:
+          title: Owner
+          type: string
+          description: The team that runs it
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+    - title: Repository
+      required: [repoUrl]
+      properties:
+        repoUrl:
+          title: Repository location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts: [gitea:3000]
+            allowedOwners: [allcsvideos]
+
+  steps:
+    - id: fetch
+      name: Fetch the skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+
+    - id: publish
+      name: Create the repository
+      action: publish:gitea
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        repoVisibility: public
+
+    - id: register
+      name: Register in the catalog
+      action: catalog:register
+      input:
+        # repoContentsUrl + catalogInfoPath lost the branch name with Gitea (first real run: 400 Bad Request)
+        catalogInfoUrl: ${{ steps['publish'].output.repoContentsUrl }}catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}

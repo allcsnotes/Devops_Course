@@ -1,0 +1,14 @@
+apiVersion: v2
+name: allcsvideos
+description: The whole allcsvideos platform, built from smaller charts
+type: application
+version: 1.0.0
+dependencies:
+- name: allcsvideos-api
+  version: 0.1.0
+  repository: file://../allcsvideos-api
+- name: podinfo
+  alias: status-page
+  version: 6.15.0
+  repository: oci://ghcr.io/stefanprodan/charts
+  condition: status-page.enabled

@@ -1,0 +1,21 @@
+# The same SLO as a Sloth spec: Sloth generates the recording rules and the burn-rate alerts
+version: "prometheus/v1"
+service: "catalog-api"
+labels:
+  owner: "platform-team"
+slos:
+  - name: "requests-availability"
+    objective: 99.9
+    description: "Course-list requests that do not fail with a 5xx"
+    sli:
+      events:
+        error_query: sum(rate(http_requests_total{job="api",route="/api/courses",status=~"5.."}[{{.window}}]))
+        total_query: sum(rate(http_requests_total{job="api",route="/api/courses"}[{{.window}}]))
+    alerting:
+      name: CatalogErrorBudgetBurn
+      page_alert:
+        labels:
+          severity: page
+      ticket_alert:
+        labels:
+          severity: ticket

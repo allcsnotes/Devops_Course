@@ -1,0 +1,13 @@
+{
+  "Rules": [
+    {
+      "ID": "old-versions",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "" },
+      "NoncurrentVersionTransitions": [
+        { "NoncurrentDays": 30, "StorageClass": "STANDARD_IA" }
+      ],
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 90 }
+    }
+  ]
+}

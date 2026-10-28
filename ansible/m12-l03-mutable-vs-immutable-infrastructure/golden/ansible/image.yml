@@ -1,0 +1,31 @@
+---
+# image.yml: the SAME roles, run by Packer inside a build container to bake the golden image.
+- name: Golden image for the allcsvideos web tier
+  hosts: all
+  vars:
+    image_build: true          # bake: install and configure, start nothing
+    hc_services: []            # no systemd inside a container
+    hc_endpoints:
+      - storefront=http://localhost/health
+  pre_tasks:
+    - name: Create the run-time settings folder
+      ansible.builtin.file:
+        path: /etc/nginx/runtime
+        state: directory
+        mode: "0755"
+
+    - name: Default run-time settings (allcs-start rewrites them at boot)
+      ansible.builtin.copy:
+        dest: /etc/nginx/runtime/env.conf
+        content: "set $app_env \"dev\";\n"
+        mode: "0644"
+  roles:
+    - common
+    - hc_toolkit
+    - nginx
+  post_tasks:
+    - name: Install the start script (boot-time config)
+      ansible.builtin.copy:
+        src: files/allcs-start
+        dest: /usr/local/bin/allcs-start
+        mode: "0755"

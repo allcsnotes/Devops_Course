@@ -1,0 +1,49 @@
+# DEMO log agent (not a real product): on every node, count the pod log files and show the newest line
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-agent
+  namespace: allcsvideos
+  labels: {app: log-agent, course: devops}
+spec:
+  selector:
+    matchLabels: {app: log-agent}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels: {app: log-agent, course: devops}
+    spec:
+      containers:
+      - name: agent
+        image: busybox:1.37.0
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef: {fieldPath: spec.nodeName}
+        - name: AGENT_VERSION
+          value: "1"
+        command:
+        - sh
+        - -c
+        - |
+          trap 'echo "$(date +%T) stopping"; exit 0' TERM
+          while true; do
+            n=$(ls /var/log/pods | wc -l)
+            echo "$(date +%T) v$AGENT_VERSION on $NODE_NAME: $n pod log folders"
+            sleep 20 & wait $!
+          done
+        volumeMounts:
+        - name: podlogs
+          mountPath: /var/log/pods
+          readOnly: true
+        resources:
+          requests: {cpu: 5m, memory: 8Mi}
+          limits: {cpu: 50m, memory: 32Mi}
+      volumes:
+      - name: podlogs
+        hostPath:
+          path: /var/log/pods
+          type: Directory

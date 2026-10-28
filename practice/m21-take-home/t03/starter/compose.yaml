@@ -1,0 +1,22 @@
+# The current compose file: it "works on my machine". Make it production-shaped (see the brief).
+services:
+  api:
+    build: ./api
+    ports: ["8080:8080"]
+    environment:
+      DB_HOST: db
+      DB_NAME: allcs
+      DB_USER: postgres
+      DB_PASSWORD_FILE: /run/pw
+      REDIS_HOST: redis
+    volumes: ["./pw.txt:/run/pw"]
+  db:
+    image: postgres:latest
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_PASSWORD: demo-password-123
+      POSTGRES_DB: allcs
+    volumes: ["./db/init.sql:/docker-entrypoint-initdb.d/init.sql"]
+  redis:
+    image: redis
+    ports: ["6379:6379"]

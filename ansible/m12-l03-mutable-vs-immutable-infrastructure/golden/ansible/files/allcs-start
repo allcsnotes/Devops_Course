@@ -1,0 +1,11 @@
+#!/bin/sh
+# allcs-start: runs when a container starts from the golden image.
+# Bake vs fry: everything is installed already; only run-time settings are applied here.
+set -eu
+case "${APP_ENV:=dev}" in
+  dev|staging|production) ;;
+  *) echo "allcs-start: unknown APP_ENV '$APP_ENV'" >&2; exit 64 ;;
+esac
+mkdir -p /etc/nginx/runtime
+printf 'set $app_env "%s";\n' "$APP_ENV" > /etc/nginx/runtime/env.conf
+exec nginx -g 'daemon off;'

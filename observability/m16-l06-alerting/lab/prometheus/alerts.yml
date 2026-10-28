@@ -1,0 +1,50 @@
+groups:
+  - name: api-symptoms
+    rules:
+      - alert: ApiHighErrorRate
+        expr: job_route:http_errors:ratio_rate1m > 0.05
+        for: 1m
+        keep_firing_for: 1m
+        labels:
+          severity: page
+          team: platform
+        annotations:
+          summary: "{{ $labels.route }}: {{ $value | humanizePercentage }} of requests fail"
+          description: "More than 5% of requests to {{ $labels.route }} returned 5xx for 1 minute."
+          runbook_url: "https://runbooks.allcsvideos.example/api-high-error-rate"
+      - alert: ApiHighLatencyP99
+        expr: job:http_request_duration_seconds:p99_1m > 1
+        for: 1m
+        labels:
+          severity: page
+          team: platform
+        annotations:
+          summary: "course list p99 latency is {{ $value | humanizeDuration }}"
+          runbook_url: "https://runbooks.allcsvideos.example/api-high-latency"
+      - alert: DbPoolSaturated
+        expr: job:db_pool:saturation >= 0.9
+        for: 1m
+        labels:
+          severity: ticket
+          team: platform
+        annotations:
+          summary: "db connection pool {{ $value | humanizePercentage }} used"
+          runbook_url: "https://runbooks.allcsvideos.example/db-pool-saturated"
+  - name: api-causes
+    rules:
+      - alert: ApiCpuHigh
+        expr: rate(process_cpu_seconds_total{job="api"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: ticket
+          team: platform
+        annotations:
+          summary: "api uses {{ $value | humanizePercentage }} of a CPU"
+  - name: meta
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: "always firing: proves the alerting pipeline works end to end"

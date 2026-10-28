@@ -1,0 +1,6 @@
+# web-02 is the canary: more logging, the new video player switched on
+app_log_level: debug
+app_features:
+  new_player: true
+  live_chat: false
+app_env: canary

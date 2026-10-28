@@ -1,0 +1,21 @@
+# kind cluster for the Kubernetes take-homes: one control plane, one worker. Longer leader-election timings keep a
+# single control plane stable on a busy laptop (lab setting).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  controllerManager:
+    extraArgs:
+    - {name: enable-hostpath-provisioner, value: "true"}
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+  scheduler:
+    extraArgs:
+    - {name: leader-elect-lease-duration, value: "90s"}
+    - {name: leader-elect-renew-deadline, value: "60s"}
+    - {name: leader-elect-retry-period, value: "10s"}
+nodes:
+- role: control-plane
+- role: worker

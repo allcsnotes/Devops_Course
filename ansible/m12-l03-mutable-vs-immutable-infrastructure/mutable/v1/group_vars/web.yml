@@ -1,0 +1,5 @@
+# the web servers
+nginx_server_name: www.allcsvideos.test
+hc_services: [nginx, ssh]
+hc_endpoints:
+  - storefront=http://localhost/health

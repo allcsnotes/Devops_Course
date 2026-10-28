@@ -1,0 +1,37 @@
+# The Ingress, now with TLS: cert-manager's Secret, served on port 443
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: allcsvideos
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: allcsvideos-strip-api@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - allcsvideos.test
+    - api.allcsvideos.test
+    secretName: allcsvideos-tls     # written by cert-manager
+  rules:
+  - host: allcsvideos.test
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix          # /api, /api/..., element by element
+        backend:
+          service: {name: api-v1, port: {name: http}}
+      - path: /copilot
+        pathType: Exact           # only /copilot itself
+        backend:
+          service: {name: copilot, port: {name: http}}
+      - path: /
+        pathType: Prefix          # everything else
+        backend:
+          service: {name: storefront, port: {name: http}}
+  - host: api.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: {name: api-v1, port: {name: http}}

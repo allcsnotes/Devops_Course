@@ -1,0 +1,5 @@
+---
+# FAKE lab values. lab/up.sh encrypts this file into vault.yml with ansible-vault.
+# In a real project only the encrypted vault.yml is committed, never a plain copy like this one.
+vault_db_password: demo-password-123
+vault_session_secret: FAKE-lab-session-key-6f1c9a24e0b7

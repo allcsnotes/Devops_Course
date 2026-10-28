@@ -1,0 +1,5 @@
+upstream api {
+    {% for backend in api_backends %}
+    server {{ backend }};
+    {% endfor %}
+}

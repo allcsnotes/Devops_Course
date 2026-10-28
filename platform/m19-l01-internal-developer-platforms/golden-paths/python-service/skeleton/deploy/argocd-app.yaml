@@ -1,0 +1,18 @@
+# Argo CD Application (module 15): the app-of-apps in allcsvideos-deploy picks this file up.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${{ values.name }}
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://gitea:3000/allcsvideos/${{ values.name }}.git
+    targetRevision: main
+    path: deploy/chart
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${{ values.name }}
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    syncOptions: [CreateNamespace=true]

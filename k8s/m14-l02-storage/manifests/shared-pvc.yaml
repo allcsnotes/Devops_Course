@@ -1,0 +1,27 @@
+# Staged: ReadWriteMany on local-path
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-uploads
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shared-user
+spec:
+  containers:
+  - name: app
+    image: busybox:1.37.0
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - name: shared
+      mountPath: /shared
+  volumes:
+  - name: shared
+    persistentVolumeClaim:
+      claimName: shared-uploads

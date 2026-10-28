@@ -1,0 +1,11 @@
+# Dashboard provider: load every JSON file in a folder, keep them in sync
+apiVersion: 1
+
+providers:
+  - name: allcsvideos
+    folder: allcsvideos        # Grafana folder they appear in
+    type: file
+    allowUiUpdates: false      # Git is the source of truth
+    updateIntervalSeconds: 10  # re-read the folder every 10 s
+    options:
+      path: /var/lib/grafana/dashboards

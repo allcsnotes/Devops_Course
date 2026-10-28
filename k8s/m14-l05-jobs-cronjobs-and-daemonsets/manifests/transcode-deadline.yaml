@@ -1,0 +1,26 @@
+# same 90-second transcode every minute, Forbid, but a missed start may be at most 20 s late
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: transcode-deadline
+  namespace: allcsvideos
+  labels: {app: transcode-deadline, course: devops}
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 20
+  successfulJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: {app: transcode-deadline, course: devops}
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: transcode
+            image: busybox:1.37.0
+            command: ["sh", "-c", "echo $(date +%T) start; sleep 90; echo $(date +%T) done"]
+            resources:
+              requests: {cpu: 10m, memory: 16Mi}
+              limits: {memory: 32Mi}

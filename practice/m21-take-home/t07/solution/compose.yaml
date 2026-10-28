@@ -1,0 +1,22 @@
+name: m21lab-t07
+services:
+  app:
+    build: ./app
+    image: m21lab-t07-app:1.0
+    environment:
+      ERROR_RATE: ${ERROR_RATE:-0}
+    labels: {course: devops}
+    mem_limit: 128m
+  load:
+    image: python:3.13.16-slim
+    command: ["python", "/load.py"]
+    volumes: ["./load.py:/load.py:ro"]
+    depends_on: [app]
+    labels: {course: devops}
+    mem_limit: 64m
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes: ["./prometheus:/etc/prometheus:ro"]
+    ports: ["127.0.0.1:21052:9090"]
+    labels: {course: devops}
+    mem_limit: 256m

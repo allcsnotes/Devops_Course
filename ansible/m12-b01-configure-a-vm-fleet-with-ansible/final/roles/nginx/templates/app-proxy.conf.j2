@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# {{ inventory_hostname }}: port 80 -> Course Copilot on this server
+server {
+    listen 80 default_server;
+    location / {
+        proxy_pass http://127.0.0.1:{{ nginx_app_port }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}

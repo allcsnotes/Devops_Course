@@ -1,0 +1,121 @@
+# image.yml (M08-L04): build, test, scan and push the Course Copilot image to GitHub Container Registry (GHCR).
+# Copy to .github/workflows/image.yml in your course-copilot repo.
+#  - push to main and v* tags: test -> scan gate -> push linux/amd64 + linux/arm64 as one manifest list
+#  - pull requests into main: the same build, but no login and no push
+# The video ran this on a local Gitea (registry gitea:3000, a ci-bot account and a REGISTRY_TOKEN secret). On GitHub
+# the job's own GITHUB_TOKEN can push to GHCR when the workflow grants "packages: write".
+name: image
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write        # GITHUB_TOKEN may push to ghcr.io (fork PRs still get a read-only token)
+
+env:
+  PUSH: ${{ github.event_name != 'pull_request' }}
+  DOCKER_BUILD_RECORD_UPLOAD: false
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name
+        # ghcr.io names must be lowercase; your GitHub user name may not be
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/course-copilot" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        # GitHub's ubuntu-latest is amd64: emulate arm64 for the multi-arch build (the lab on Apple silicon skipped this)
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.33.1
+
+      - name: Log in to the registry
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Test
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: test-report
+          outputs: type=local,dest=reports
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+
+      - name: Upload the test report
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: reports/junit.xml
+
+      - name: Build for the scan
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          outputs: type=docker,dest=copilot.tar
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+
+      - name: SBOM
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --input copilot.tar --format cyclonedx --output sbom.cdx.json
+
+      - name: Upload the SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: sbom.cdx.json
+
+      - name: Scan (gate)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image -q --input copilot.tar --scanners vuln --table-mode detailed --exit-code 1 --severity CRITICAL
+        env:
+          TRIVY_DISABLE_VEX_NOTICE: true
+
+      - name: Build both platforms and push
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: APP_VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          cache-to: ${{ env.PUSH == 'true' && format('type=registry,ref={0}:buildcache,mode=max', env.IMAGE) || '' }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Inspect what was pushed
+        if: env.PUSH == 'true'
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}

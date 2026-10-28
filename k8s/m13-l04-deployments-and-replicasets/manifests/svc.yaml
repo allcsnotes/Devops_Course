@@ -1,0 +1,11 @@
+# a stable name in front of the web pods (Services are the next lesson)
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+  - port: 80
+    targetPort: 8080

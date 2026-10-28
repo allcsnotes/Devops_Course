@@ -1,0 +1,16 @@
+# the old way: a Secret as environment variables
+apiVersion: v1
+kind: Pod
+metadata:
+  name: legacy-worker
+spec:
+  containers:
+  - name: worker
+    image: busybox:1.37.0
+    command: ["sleep", "3600"]
+    env:
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-creds
+          key: password

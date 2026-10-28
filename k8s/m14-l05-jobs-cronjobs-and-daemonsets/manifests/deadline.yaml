@@ -1,0 +1,22 @@
+# STAGED: a transcode that hangs; the Job gives it 20 seconds in total
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transcode-hung
+  namespace: allcsvideos
+  labels: {app: transcode, course: devops}
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 20
+  template:
+    metadata:
+      labels: {app: transcode, course: devops}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: transcode
+        image: busybox:1.37.0
+        command: ["sh", "-c", "echo transcoding lesson-07.mp4; sleep 3600"]
+        resources:
+          requests: {cpu: 10m, memory: 16Mi}
+          limits: {memory: 32Mi}

@@ -1,0 +1,40 @@
+# Multiwindow, multi-burn-rate alerts for the 99.9% catalog SLO.
+# Values from the Google SRE Workbook, chapter 5 "Alerting on SLOs".
+groups:
+  - name: slo-catalog-alerts
+    rules:
+      - alert: CatalogErrorBudgetBurn
+        expr: |
+          (
+            job:slo_errors_per_request:ratio_rate1h{job="api"} > (14.4 * 0.001)
+          and
+            job:slo_errors_per_request:ratio_rate5m{job="api"} > (14.4 * 0.001)
+          )
+          or
+          (
+            job:slo_errors_per_request:ratio_rate6h{job="api"} > (6 * 0.001)
+          and
+            job:slo_errors_per_request:ratio_rate30m{job="api"} > (6 * 0.001)
+          )
+        labels:
+          severity: page
+        annotations:
+          summary: "Catalog API is burning its 30-day error budget fast"
+
+      - alert: CatalogErrorBudgetBurn
+        expr: |
+          (
+            job:slo_errors_per_request:ratio_rate1d{job="api"} > (3 * 0.001)
+          and
+            job:slo_errors_per_request:ratio_rate2h{job="api"} > (3 * 0.001)
+          )
+          or
+          (
+            job:slo_errors_per_request:ratio_rate3d{job="api"} > 0.001
+          and
+            job:slo_errors_per_request:ratio_rate6h{job="api"} > 0.001
+          )
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Catalog API is slowly burning its 30-day error budget"

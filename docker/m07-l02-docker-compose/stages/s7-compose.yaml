@@ -1,0 +1,131 @@
+# allcsvideos: the local stack in one file
+name: compose-lab
+
+x-labels: &labels       # our course label, reused below
+  course: devops
+
+services:
+  storefront:
+    build: ./storefront
+    ports:
+      - "127.0.0.1:${STOREFRONT_PORT:-8080}:80"
+    configs:
+      - source: storefront_conf
+        target: /etc/nginx/conf.d/default.conf
+    networks: [front]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    labels: *labels
+
+  db:
+    image: postgres:18.6-alpine3.24
+    environment:
+      POSTGRES_USER: allcsvideos
+      POSTGRES_DB: allcsvideos
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "allcsvideos", "-d", "allcsvideos"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    labels: *labels
+
+  redis:
+    image: redis:8.10.2-alpine3.23
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    labels: *labels
+
+  api:
+    build: ./api
+    env_file: ./api/api.env
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+    networks: [front, back]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels: *labels
+
+  copilot:                       # the heavy AI service: only when asked for
+    build:
+      context: ./copilot
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        APP_VERSION: "1.5.0"
+    profiles: [copilot]
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks: [front]
+    labels: *labels
+
+  migrate:                       # one-off job: docker compose run --rm migrate
+    image: postgres:18.6-alpine3.24
+    profiles: [tools]
+    environment:
+      PGHOST: db
+      PGUSER: allcsvideos
+      PGDATABASE: allcsvideos
+    secrets: [db_password]
+    volumes:
+      - ./db/migrations:/migrations:ro
+    entrypoint: ["sh", "-c", "PGPASSWORD=$$(cat /run/secrets/db_password) exec psql -v ON_ERROR_STOP=1 -f /migrations/001_courses.sql"]
+    networks: [back]
+    depends_on:
+      db:
+        condition: service_healthy
+    labels: *labels
+
+  netshoot:                      # debug toolbox (M06-L06)
+    image: nicolaka/netshoot:v0.16
+    profiles: [debug]
+    command: ["sleep", "infinity"]
+    networks: [front, back]
+    labels: *labels
+
+  adminer:                       # database web UI, on loopback only
+    image: adminer:6.1.2
+    profiles: [debug]
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks: [front, back]
+    labels: *labels
+
+networks:
+  front:
+    labels: *labels
+  back:
+    internal: true      # no route out (M06-L06)
+    labels: *labels
+
+volumes:
+  pgdata:
+    labels: *labels
+
+configs:
+  storefront_conf:
+    file: ./storefront/default.conf
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt     # git-ignored; FAKE value in this demo

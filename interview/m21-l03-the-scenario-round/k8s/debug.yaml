@@ -1,0 +1,16 @@
+# a long-lived debug pod next to the users (namespace lab): same probe a user's request takes, on demand
+apiVersion: v1
+kind: Pod
+metadata: {name: debug, namespace: lab}
+spec:
+  containers:
+  - name: debug
+    image: python:3.13.16-slim
+    imagePullPolicy: IfNotPresent
+    command: [sleep, infinity]
+    env: [{name: TZ, value: "IST-5:30"}]
+    volumeMounts: [{name: load, mountPath: /load}]
+  terminationGracePeriodSeconds: 1
+  volumes:
+  - name: load
+    configMap: {name: traffic}

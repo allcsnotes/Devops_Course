@@ -1,0 +1,40 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api
+spec:
+  stripPrefix:
+    prefixes: [/api]          # /api/courses -> /courses
+---
+# Traefik's own way: a Middleware (a Traefik CRD) + a Traefik annotation
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: allcsvideos
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: allcsvideos-strip-api@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: allcsvideos.test
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix          # /api, /api/..., element by element
+        backend:
+          service: {name: api-v1, port: {name: http}}
+      - path: /copilot
+        pathType: Exact           # only /copilot itself
+        backend:
+          service: {name: copilot, port: {name: http}}
+      - path: /
+        pathType: Prefix          # everything else
+        backend:
+          service: {name: storefront, port: {name: http}}
+  - host: api.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: {name: api-v1, port: {name: http}}

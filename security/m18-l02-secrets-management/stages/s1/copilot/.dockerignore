@@ -1,0 +1,10 @@
+# never send these to the builder
+.git
+.venv*
+eval/
+.env
+**/__pycache__
+.*_cache
+reports/
+Dockerfile
+.dockerignore

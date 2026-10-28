@@ -1,0 +1,32 @@
+# two.yml (M08-L02 extra, for a scratch repo): a composite action with an output, a reusable workflow call,
+# and a job that hits its 1-minute timeout on purpose (sleep 90 -> the job fails, as intended).
+name: two
+on: [push]
+jobs:
+  py:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python --version && which python
+      - id: h
+        uses: ./.github/actions/hello
+        with:
+          who: asha
+      - run: echo "composite said ${{ steps.h.outputs.msg }}"
+  call:
+    uses: ./.github/workflows/reuse.yml
+    with:
+      target: hc
+  after:
+    needs: call
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "reusable said ${{ needs.call.outputs.result }}"
+  slow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - run: sleep 90

@@ -1,0 +1,35 @@
+# Round 2 Kubernetes question: the catalog Service. Staged on purpose: targetPort 80, but the container listens on 8080.
+apiVersion: v1
+kind: Namespace
+metadata: {name: allcs}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: catalog, namespace: allcs}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: catalog}}
+  template:
+    metadata: {labels: {app: catalog}}
+    spec:
+      containers:
+      - name: api
+        image: python:3.13.16-slim
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "http.server", "8080", "--directory", "/srv"]
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          tcpSocket: {port: http}
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 20m, memory: 32Mi}
+          limits: {memory: 96Mi}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: catalog, namespace: allcs}
+spec:
+  selector: {app: catalog}
+  ports:
+  - {name: web, port: 80, targetPort: 80}

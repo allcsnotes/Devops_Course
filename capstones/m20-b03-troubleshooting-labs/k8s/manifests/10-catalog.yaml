@@ -1,0 +1,53 @@
+# catalog: 2 replicas behind Service catalog. Its settings live in a VERSIONED ConfigMap (catalog-config-v1):
+# a new config is a new name, so the Deployment changes, and rollout undo brings the old config back.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-config-v1
+  namespace: allcs
+data:
+  PAGE_SIZE: "20"
+  CACHE_MB: "8"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: allcs
+spec:
+  replicas: 2
+  progressDeadlineSeconds: 60
+  selector:
+    matchLabels: {app: catalog}
+  template:
+    metadata:
+      labels: {app: catalog}
+    spec:
+      containers:
+      - name: api
+        image: trouble-api:1.0
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef: {name: catalog-config-v1}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 3
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 3
+          failureThreshold: 2
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {memory: 96Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog
+  namespace: allcs
+spec:
+  selector: {app: catalog}
+  ports:
+  - {port: 80, targetPort: http}

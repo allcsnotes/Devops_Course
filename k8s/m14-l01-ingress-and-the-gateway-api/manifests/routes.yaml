@@ -1,0 +1,38 @@
+# The app team's part: HTTPRoutes in their own namespace, attached to the shared Gateway
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: site
+spec:
+  parentRefs:
+  - name: allcsvideos
+    namespace: gateway-infra
+  hostnames: [allcsvideos.test]
+  rules:
+  - matches:
+    - path: {type: PathPrefix, value: /api}
+    filters:
+    - type: URLRewrite                         # a standard filter, not an annotation
+      urlRewrite:
+        path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
+    backendRefs:
+    - {name: api-v1, port: 80}
+  - matches:
+    - path: {type: PathPrefix, value: /copilot}
+    backendRefs:
+    - {name: copilot, port: 80}
+  - backendRefs:                               # no match: everything else
+    - {name: storefront, port: 80}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api
+spec:
+  parentRefs:
+  - name: allcsvideos
+    namespace: gateway-infra
+  hostnames: [api.allcsvideos.test]
+  rules:
+  - backendRefs:
+    - {name: api-v1, port: 80}

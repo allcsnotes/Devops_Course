@@ -1,0 +1,7 @@
+api:
+  image: registry.lab:5000/allcs/api:1.0
+  replicas: 1
+  dbHost: db
+web:
+  image: nginxinc/nginx-unprivileged:1.29.8-alpine
+  nodePort: 30080

@@ -1,0 +1,19 @@
+$schema: https://flagd.dev/schema/v0/flags.json
+# Every flag at allcsvideos, wherever it is read, with an owner and a type.
+# Release and experiment flags also get an expiry date: CI fails once it has passed.
+flags:
+  copilot-answers:
+    state: ENABLED
+    variants: {"on": true, "off": false}
+    defaultVariant: "on"
+    metadata: {type: ops, owner: asha}
+  lesson-notes-v2:
+    state: ENABLED
+    variants: {"on": true, "off": false}
+    defaultVariant: "off"
+    metadata: {type: release, owner: priya, expires: "2026-12-31"}
+  notify-v2:           # read by hc as NOTIFY_V2 in hc.conf
+    state: ENABLED
+    variants: {"on": true, "off": false}
+    defaultVariant: "on"
+    metadata: {type: release, owner: priya, expires: "2026-10-15"}

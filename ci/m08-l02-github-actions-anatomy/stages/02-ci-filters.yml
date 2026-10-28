@@ -1,0 +1,19 @@
+# Stage 2 (M08-L02): run only for pushes to main, and only when hc/ or the workflows changed.
+name: ci
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hc/**"
+      - ".github/**"
+  pull_request:
+    paths:
+      - "hc/**"
+      - ".github/**"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the hc tests
+        run: bash hc/tests/run.sh

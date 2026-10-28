@@ -1,0 +1,23 @@
+# Gitea runner (gitea/runner:5.1.1) config for the M18-B01 lab (from the M18-L01 / M09-B01 labs; full option list:
+# gitea-runner config generate). Only the options we change.
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 2                  # two jobs at a time: the laptop is shared
+  envs:                        # image builds go to the CI Docker daemon (securepipe-docker), never to the Mac's Docker
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: /certs/client
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: true
+  dir: /data/cache
+  port: 8088
+container:
+  network: securepipe-net       # jobs reach gitea:3000, registry.lab:5000, docker:2376 and the cluster API
+  options: --label course=devops --label lab=securepipe --volume securepipe-dind-certs:/certs:ro
+  valid_volumes:
+    - securepipe-dind-certs:ro  # only the CI daemon's client certificates, read-only
+  docker_host: "-"             # the runner never hands the Mac's Docker socket to a job

@@ -1,0 +1,24 @@
+$TTL 3600
+@   IN SOA ns1.allcsvideos.test. hostmaster.allcsvideos.test. (
+            2026102001  ; serial
+            3600        ; refresh
+            600         ; retry
+            604800      ; expire
+            60 )        ; negative caching TTL
+    IN NS     ns1.allcsvideos.test.
+    IN A      10.0.53.11
+    IN AAAA   2001:db8:53::11
+    IN MX     10 mail.allcsvideos.test.
+    IN TXT    "v=spf1 mx -all"
+    IN TXT    "allcs-site-verification=demo-7f3a9c"
+    IN CAA    0 issue "letsencrypt.org"
+ns1         IN A      10.0.53.10
+resolver    IN A      10.0.53.53
+web-01      IN A      10.0.53.11
+www         IN CNAME  allcsvideos.test.
+api   86400 IN A      10.0.53.21
+api-01      IN A      10.0.53.21
+api-02      IN A      10.0.53.22
+mail        IN A      10.0.53.25
+db-01       IN A      10.0.53.41
+_postgresql._tcp IN SRV 0 0 5432 db-01.allcsvideos.test.

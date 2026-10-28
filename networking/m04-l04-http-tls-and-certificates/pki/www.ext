@@ -1,0 +1,6 @@
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature
+extendedKeyUsage = serverAuth
+subjectAltName = DNS:www.allcsvideos.test, DNS:allcsvideos.test
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid

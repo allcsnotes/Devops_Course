@@ -1,0 +1,91 @@
+# promtool test rules slo-tests.yml : 10 requests/s, one sample per minute (600 requests per minute)
+rule_files: [slo-rules.yml, slo-alerts.yml]
+evaluation_interval: 1m
+tests:
+  - name: baseline, no errors, no alerts
+    interval: 1m
+    input_series:
+      - {series: 'up{job="catalog",instance="app:8080"}', values: '1x120'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="200"}', values: '0+600x120'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="503"}', values: '0x120'}
+    alert_rule_test:
+      - {eval_time: 2h, alertname: CatalogErrorBudgetBurn1h, exp_alerts: []}
+      - {eval_time: 2h, alertname: CatalogErrorBudgetBurn6h, exp_alerts: []}
+      - {eval_time: 2h, alertname: CatalogErrorBudgetSlowBurn, exp_alerts: []}
+      - {eval_time: 2h, alertname: CatalogScrapeMissing, exp_alerts: []}
+
+  - name: 20% errors for 30 minutes pages, and each page ends when its short window is clean
+    interval: 1m
+    input_series:
+      - {series: 'up{job="catalog",instance="app:8080"}', values: '1x150'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="200"}', values: '0+600x60 36480+480x29 51000+600x59'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="503"}', values: '0x60 120+120x29 3600x59'}
+    promql_expr_test:
+      - expr: job:slo_errors_per_request:ratio_rate5m
+        eval_time: 75m
+        exp_samples: [{labels: 'job:slo_errors_per_request:ratio_rate5m{job="catalog"}', value: 0.2}]
+    alert_rule_test:
+      - {eval_time: 62m, alertname: CatalogErrorBudgetBurn1h, exp_alerts: []}
+      - eval_time: 75m
+        alertname: CatalogErrorBudgetBurn1h
+        exp_alerts:
+          - exp_labels: {job: catalog, severity: page, team: platform, window: 1h}
+            exp_annotations:
+              summary: "catalog is burning its 30-day error budget fast"
+              description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+              runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      # 10 minutes after recovery the 5m window is clean, so the 1h page has ended ...
+      - {eval_time: 100m, alertname: CatalogErrorBudgetBurn1h, exp_alerts: []}
+      # ... but the 30m short window still holds errors, so the 6h page is still firing
+      - eval_time: 100m
+        alertname: CatalogErrorBudgetBurn6h
+        exp_alerts:
+          - exp_labels: {job: catalog, severity: page, team: platform, window: 6h}
+            exp_annotations:
+              summary: "catalog is burning its 30-day error budget fast"
+              description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+              runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      - {eval_time: 125m, alertname: CatalogErrorBudgetBurn6h, exp_alerts: []}
+
+  - name: a 3-minute blip at 10% errors does not page
+    interval: 1m
+    input_series:
+      - {series: 'up{job="catalog",instance="app:8080"}', values: '1x90'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="200"}', values: '0+600x60 36540+540x2 37620+600x27'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="503"}', values: '0x60 60+60x2 180x27'}
+    alert_rule_test:
+      - {eval_time: 70m, alertname: CatalogErrorBudgetBurn1h, exp_alerts: []}
+      - {eval_time: 70m, alertname: CatalogErrorBudgetBurn6h, exp_alerts: []}
+
+  - name: 0.5% errors for hours opens a ticket, not a page
+    interval: 1m
+    input_series:
+      - {series: 'up{job="catalog",instance="app:8080"}', values: '1x180'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="200"}', values: '0+597x180'}
+      - {series: 'http_requests_total{job="catalog",route="/api/courses",status="503"}', values: '0+3x180'}
+    alert_rule_test:
+      - {eval_time: 30m, alertname: CatalogErrorBudgetSlowBurn, exp_alerts: []}
+      - eval_time: 2h
+        alertname: CatalogErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels: {job: catalog, severity: ticket, team: platform}
+            exp_annotations:
+              summary: "catalog is slowly burning its 30-day error budget"
+              description: "GET /api/courses is failing faster than its 99.9% SLO allows."
+              runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"
+      - {eval_time: 2h, alertname: CatalogErrorBudgetBurn1h, exp_alerts: []}
+      - {eval_time: 2h, alertname: CatalogErrorBudgetBurn6h, exp_alerts: []}
+
+  - name: a target that stops answering pages, because its SLO alerts cannot
+    interval: 1m
+    input_series:
+      - {series: 'up{job="catalog",instance="app:8080"}', values: '1x10 0x10'}
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: CatalogScrapeMissing
+        exp_alerts:
+          - exp_labels: {job: catalog, instance: "app:8080", severity: page, team: platform}
+            exp_annotations:
+              summary: "Prometheus cannot scrape catalog"
+              description: "No catalog metrics for 2 minutes, so the SLO alerts cannot fire."
+              runbook_url: "https://runbooks.allcsvideos.example/catalog-error-budget"

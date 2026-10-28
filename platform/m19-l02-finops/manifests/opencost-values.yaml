@@ -1,0 +1,24 @@
+# OpenCost chart 2.5.33 (OpenCost 1.121.3) values for the allcsvideos lab.
+# kind has no cloud bill, so OpenCost uses the "custom" provider with prices WE derived from the real AWS list price
+# of a t3.medium (Pricing API, us-east-1, Linux, On-Demand, 2026-10-21): $0.0416/h for 2 vCPU + 4 GiB.
+# Assumption (ours): half of the price for the vCPUs, half for the memory:
+#   CPU = 0.0208 / 2 vCPU = 0.0104 per vCPU-hour     RAM = 0.0208 / 4 GiB = 0.0052 per GiB-hour
+opencost:
+  exporter:
+    defaultClusterId: allcs-kind
+  customPricing:
+    enabled: true
+    provider: custom
+    costModel:
+      description: "lab prices from AWS t3.medium list price, us-east-1, 2026-10-21 (split 50/50, our assumption)"
+      CPU: 0.0104
+      RAM: 0.0052
+      spotCPU: 0.0104
+      spotRAM: 0.0052
+      GPU: 0
+      storage: 0          # no persistent volumes in this lab
+  prometheus:
+    internal:
+      serviceName: prometheus
+      namespaceName: monitoring
+      port: 9090

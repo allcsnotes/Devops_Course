@@ -1,0 +1,57 @@
+# Shut dev down at night: scale every Deployment in allcs-dev to 0 at 20:00 and back to 1 at 08:00, Monday to Friday
+# (weekends stay off). Times are India Standard Time (CronJob timeZone, stable since Kubernetes 1.27).
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: dev-scheduler, namespace: allcs-dev}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: dev-scheduler, namespace: allcs-dev}
+rules:
+- apiGroups: [apps]
+  resources: [deployments, deployments/scale]
+  verbs: [get, list, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: dev-scheduler, namespace: allcs-dev}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: dev-scheduler}
+subjects: [{kind: ServiceAccount, name: dev-scheduler, namespace: allcs-dev}]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: dev-sleep, namespace: allcs-dev}
+spec:
+  schedule: "0 20 * * 1-5"
+  timeZone: Asia/Kolkata
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: {app: dev-scheduler, project: allcsvideos, env: dev, team: platform, cost-center: cc-0001}
+        spec:
+          serviceAccountName: dev-scheduler
+          restartPolicy: Never
+          containers:
+          - name: kubectl
+            image: registry.k8s.io/kubectl:v1.37.1
+            args: [scale, deployment, --all, --replicas=0, -n, allcs-dev]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: dev-wake, namespace: allcs-dev}
+spec:
+  schedule: "0 8 * * 1-5"
+  timeZone: Asia/Kolkata
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: {app: dev-scheduler, project: allcsvideos, env: dev, team: platform, cost-center: cc-0001}
+        spec:
+          serviceAccountName: dev-scheduler
+          restartPolicy: Never
+          containers:
+          - name: kubectl
+            image: registry.k8s.io/kubectl:v1.37.1
+            args: [scale, deployment, --all, --replicas=1, -n, allcs-dev]

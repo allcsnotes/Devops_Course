@@ -1,0 +1,15 @@
+# STAGED, lab only: a "debug" pod that asks for everything (privileged, host PID namespace, root).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-root
+  namespace: catalog
+spec:
+  hostPID: true
+  containers:
+  - name: sh
+    image: registry.lab:5000/allcs/catalog:1.0
+    command: ["sleep", "3600"]
+    securityContext:
+      privileged: true
+      runAsUser: 0

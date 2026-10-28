@@ -1,0 +1,9 @@
+# the web servers
+nginx_server_name: www.allcsvideos.test
+nginx_worker_connections: 1024
+api_backends:
+  - 10.0.122.31:8080
+  - 10.0.122.32:8080
+hc_services: [nginx, ssh]
+hc_endpoints:
+  - storefront=http://localhost/health

@@ -1,0 +1,40 @@
+# M16-L01 lab: the allcsvideos API (lab build), its catalog database, and simulated users
+name: m16-lab
+services:
+  db:
+    image: postgres:18.6-alpine3.24
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_PASSWORD: demo-password-123   # fake lab password
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "catalog"]
+      interval: 2s
+      retries: 30
+    cpus: 1.0
+    mem_limit: 512m
+    labels: [course=devops]
+  api:
+    build: ./api
+    image: m16-lab-api:1.0
+    environment:
+      DB_HOST: db
+      DB_PASSWORD: demo-password-123        # fake lab password
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      USER_LABEL: ${USER_LABEL:-0}
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      db: {condition: service_healthy}
+    cpus: 1.0
+    mem_limit: 256m
+    labels: [course=devops]
+  load:
+    build: ./load
+    image: m16-lab-load:1.0
+    volumes:
+      - ./runs:/t/runs
+    labels: [course=devops]
+networks:
+  default:
+    labels: [course=devops]

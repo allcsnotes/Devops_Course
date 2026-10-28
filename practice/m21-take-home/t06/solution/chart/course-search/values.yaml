@@ -1,0 +1,26 @@
+image:
+  repository: m21lab-t02-app
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  port: 80
+
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 128Mi}
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
+
+# seconds the pod keeps serving after it is removed from the endpoints, before nginx/uvicorn get SIGTERM
+preStopSleepSeconds: 5

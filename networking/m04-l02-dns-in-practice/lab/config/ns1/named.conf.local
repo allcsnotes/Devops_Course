@@ -1,0 +1,8 @@
+zone "allcsvideos.test" {
+    type primary;
+    file "/etc/bind/zones/db.allcsvideos.test";
+};
+zone "53.0.10.in-addr.arpa" {
+    type primary;
+    file "/etc/bind/zones/db.10.0.53";
+};

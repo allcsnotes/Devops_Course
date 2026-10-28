@@ -1,0 +1,40 @@
+# the allcsvideos API, final: probes plus requests and limits sized from kubectl top
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+      - name: api
+        image: health-api:1.0.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:              # measured: about 30m CPU and 17Mi under 20 requests/s
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 128Mi        # memory limit: a leak gets OOMKilled, not the node
+        readinessProbe:          # may this pod get traffic?
+          httpGet:
+            path: /readyz
+            port: 8080
+          periodSeconds: 2
+          timeoutSeconds: 1
+          failureThreshold: 2
+        livenessProbe:           # is this container stuck? restart it
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 3

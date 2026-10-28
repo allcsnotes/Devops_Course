@@ -1,0 +1,19 @@
+# hello: a tiny composite action with an input and an output (M08-L02 extra).
+name: hello
+description: a tiny composite action
+inputs:
+  who:
+    description: who to greet
+    default: world
+outputs:
+  msg:
+    description: the greeting
+    value: ${{ steps.g.outputs.msg }}
+runs:
+  using: composite
+  steps:
+    - id: g
+      shell: bash
+      run: echo "msg=hello ${{ inputs.who }}" >> "$GITHUB_OUTPUT"
+    - shell: bash
+      run: echo "inside composite, action_path=${{ github.action_path }}"

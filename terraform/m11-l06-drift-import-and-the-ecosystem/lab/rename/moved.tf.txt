@@ -1,0 +1,4 @@
+moved {
+  from = terraform_data.media
+  to   = terraform_data.course_media
+}

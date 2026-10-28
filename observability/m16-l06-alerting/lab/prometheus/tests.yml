@@ -1,0 +1,22 @@
+# unit tests for the alert rules: promtool test rules tests.yml
+rule_files: [rules.yml, alerts.yml]
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:   # 2 minutes at 10 requests/s, all OK; then 9 of 10 fail
+      - series: 'http_requests_total{job="api",route="/api/courses",status="200"}'
+        values: '0+150x8 1215+15x20'
+      - series: 'http_requests_total{job="api",route="/api/courses",status="503"}'
+        values: '0x8 135+135x20'
+    alert_rule_test:
+      - eval_time: 2m30s          # errors started, but not for 1m yet: pending, nothing fires
+        alertname: ApiHighErrorRate
+        exp_alerts: []
+      - eval_time: 3m30s
+        alertname: ApiHighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: page, team: platform, job: api, route: /api/courses}
+            exp_annotations:
+              summary: "/api/courses: 90% of requests fail"
+              description: "More than 5% of requests to /api/courses returned 5xx for 1 minute."
+              runbook_url: "https://runbooks.allcsvideos.example/api-high-error-rate"

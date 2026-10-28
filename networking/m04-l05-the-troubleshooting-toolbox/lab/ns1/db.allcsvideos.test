@@ -1,0 +1,11 @@
+$TTL 300
+@       IN SOA ns1.allcsvideos.test. hostmaster.allcsvideos.test. (
+            2026102001 ; serial
+            3600       ; refresh
+            600        ; retry
+            604800     ; expire
+            60 )       ; negative TTL
+        IN NS   ns1.allcsvideos.test.
+@       IN A    10.0.56.10
+www     IN A    10.0.56.10
+ns1     IN A    10.0.55.53

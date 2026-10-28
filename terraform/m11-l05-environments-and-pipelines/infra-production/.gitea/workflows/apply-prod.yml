@@ -1,0 +1,61 @@
+name: apply-prod
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "allcsvideos-infra run (number) whose saved prod plan you approve"
+        required: true
+        type: string
+
+concurrency: production
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  API: ${{ github.server_url }}/api/v1/repos/allcsvideos/allcsvideos-infra
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      TOKEN: ${{ secrets.INFRA_READ_TOKEN }} # read-only access to allcsvideos-infra
+    steps:
+      - name: Approved by whom, for which run
+        id: run
+        run: |
+          echo "approved by: ${{ github.actor }}"
+          curl -sf -H "Authorization: token $TOKEN" "$API/actions/runs?limit=50" |
+            jq -e --argjson n "${{ inputs.run }}" '.workflow_runs[] | select(.run_number == $n)' > run.json
+          jq -e '.event == "push" and .head_branch == "main" and .conclusion == "success"' run.json > /dev/null \
+            || { echo "refused: run ${{ inputs.run }} is not a successful main-branch run"; exit 1; }
+          echo "run ${{ inputs.run }} on main, commit $(jq -r .head_sha run.json | cut -c1-7)"
+          echo "id=$(jq -r .id run.json)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: allcsvideos/allcsvideos-infra
+          ref: ${{ steps.run.outputs.sha }}
+          token: ${{ secrets.INFRA_READ_TOKEN }}
+      - name: Download the saved prod plan from that run
+        working-directory: envs/prod
+        run: |
+          id=$(curl -sf -H "Authorization: token $TOKEN" "$API/actions/runs/${{ steps.run.outputs.id }}/artifacts" |
+            jq -r '.artifacts[] | select(.name == "tfplan-prod") | .id')
+          curl -sfL -H "Authorization: token $TOKEN" "$API/actions/artifacts/$id/zip" -o plan.zip
+          unzip -o plan.zip && ls -l tfplan
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+      - name: terraform apply (the saved plan, nothing else)
+        working-directory: envs/prod
+        env:
+          PG_CONN_STR: ${{ secrets.TF_STATE_PROD }} # the only place the prod state password lives
+        run: |
+          terraform init -no-color > /dev/null
+          terraform show -no-color tfplan
+          terraform apply -no-color tfplan

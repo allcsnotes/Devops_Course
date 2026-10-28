@@ -1,0 +1,15 @@
+# Written by the Copilot team, in THEIR namespace: who may point at their Services
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-allcsvideos-routes
+  namespace: copilot
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: allcsvideos
+  to:
+  - group: ""
+    kind: Service
+    name: copilot

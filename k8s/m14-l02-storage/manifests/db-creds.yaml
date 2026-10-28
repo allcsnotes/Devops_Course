@@ -1,0 +1,8 @@
+# FAKE lab credentials, for the demo only
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-creds
+type: Opaque
+stringData:
+  password: demo-password-123

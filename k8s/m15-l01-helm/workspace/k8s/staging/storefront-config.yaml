@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storefront-nginx
+  labels: {app: storefront, course: devops}
+data:
+  default.conf: |
+    server {
+      listen 80;
+      location /api/ { proxy_pass http://api/; }
+      location / { default_type text/html; return 200 "<h1>allcsvideos</h1>\n"; }
+    }

@@ -1,0 +1,21 @@
+# Our own Semgrep rule (runs offline: no registry download, no login). Lab rule for the allcsvideos services.
+rules:
+  - id: sql-built-from-strings
+    languages: [python]
+    severity: ERROR
+    message: >-
+      SQL built from a string with user data in it. Pass the values as
+      parameters instead: db.execute("... WHERE title LIKE ?", (value,))
+    metadata:
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A05:2025 Injection"
+    pattern-either:
+      - pattern: $DB.execute(f"...", ...)
+      - pattern: $DB.execute("..." + $X, ...)
+      - pattern: $DB.execute("..." % $X, ...)
+      - pattern: $DB.execute("...".format(...), ...)
+      - patterns:
+          - pattern-inside: |
+              $SQL = f"..."
+              ...
+          - pattern: $DB.execute($SQL, ...)

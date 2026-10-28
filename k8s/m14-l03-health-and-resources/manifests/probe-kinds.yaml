@@ -1,0 +1,19 @@
+# one pod, three probe mechanisms: tcpSocket, exec and httpGet (timing fields left at their defaults)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe-kinds
+spec:
+  containers:
+  - name: api
+    image: health-api:1.0.0
+    startupProbe:
+      tcpSocket:               # passes when the port accepts a TCP connection
+        port: 8080
+    readinessProbe:
+      exec:                    # passes when the command exits 0
+        command: ["curl", "-sf", "localhost:8080/readyz"]
+    livenessProbe:
+      httpGet:                 # passes on any status from 200 to 399
+        path: /healthz
+        port: 8080

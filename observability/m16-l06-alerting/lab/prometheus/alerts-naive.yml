@@ -1,0 +1,14 @@
+# first attempt: "alert on everything that looks bad", no for, one alert per series
+groups:
+  - name: api-naive
+    rules:
+      - alert: ApiCpuHigh
+        expr: rate(process_cpu_seconds_total{job="api"}[1m]) > 0.5
+      - alert: PoolBusy
+        expr: db_pool_in_use > 2
+      - alert: RequestsWaiting
+        expr: db_pool_waiting > 0
+      - alert: SlowRequests
+        expr: histogram_quantile(0.99, sum by (route, le) (rate(http_request_duration_seconds_bucket[1m]))) > 0.3
+      - alert: ServerErrors
+        expr: increase(http_requests_total{status=~"5.."}[1m]) > 0

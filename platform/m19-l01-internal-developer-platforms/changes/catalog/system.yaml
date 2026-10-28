@@ -1,0 +1,28 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: allcsvideos
+  title: allcsvideos.com
+  description: The course platform - storefront, API and Course Copilot
+spec:
+  owner: group:platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: catalog-db
+  description: PostgreSQL 18 database of the course catalog
+spec:
+  type: database
+  owner: group:platform
+  system: allcsvideos
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: cache
+  description: Redis 8 cache (nothing saved to disk)
+spec:
+  type: cache
+  owner: group:platform
+  system: allcsvideos

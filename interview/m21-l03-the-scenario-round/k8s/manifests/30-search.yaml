@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: search, namespace: allcs}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: search}}
+  template:
+    metadata: {labels: {app: search}}
+    spec:
+      containers:
+      - name: api
+        image: scenario-catalog:1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - {name: APP_NAME, value: search}
+        - {name: CACHE_MB, value: "48"}
+        - {name: TZ, value: "IST-5:30"}
+        ports:
+        - {name: http, containerPort: 8080}
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: search, namespace: allcs}
+spec:
+  selector: {app: search}
+  ports:
+  - {port: 80, targetPort: http}

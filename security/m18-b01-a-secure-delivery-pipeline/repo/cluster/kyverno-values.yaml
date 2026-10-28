@@ -1,0 +1,8 @@
+# Kyverno 1.19.2 (chart 3.9.2) for the M18-B01 lab: only the admission controller, the part that guards the door.
+# Background scans, cleanup and reports are off to fit a laptop shared with other labs (production keeps them on).
+backgroundController:
+  enabled: false
+cleanupController:
+  enabled: false
+reportsController:
+  enabled: false

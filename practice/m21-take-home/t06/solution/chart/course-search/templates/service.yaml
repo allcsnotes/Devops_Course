@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cs.name" . }}
+  labels: {{- include "cs.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "cs.selector" . | nindent 4 }}
+  ports:
+    - {name: http, port: {{ .Values.service.port }}, targetPort: http}

@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+configMapGenerator:
+- name: api-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=DEBUG
+resources:
+- api-debug.yaml

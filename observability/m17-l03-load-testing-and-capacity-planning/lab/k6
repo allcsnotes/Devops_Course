@@ -1,0 +1,5 @@
+#!/bin/sh
+# ./k6 ARGS: run k6 2.3.0 (grafana/k6:2.3.0) inside the lab network, so it reaches http://api:8080 and Prometheus.
+# Same as installing k6 on your laptop, without installing anything. Example: ./k6 run tests/smoke.js
+cd "$(dirname "$0")"
+exec docker compose run --rm k6 "$@"

@@ -1,0 +1,78 @@
+# CI for course-search: four gates on every pull request and every push to main.
+# lint, test and scan run in parallel; build runs only when all three pass.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: course-search
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: hadolint (Dockerfile)
+        uses: docker://hadolint/hadolint:v2.15.1
+        with:
+          args: hadolint --no-color Dockerfile
+      - name: shellcheck (scripts)
+        uses: docker://koalaman/shellcheck:v0.11.0
+        with:
+          args: scripts/smoke.sh
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: unit tests (the Dockerfile's test stage)
+        run: docker build --target test -t "$IMAGE:test-${GITHUB_SHA::7}" .
+
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # the whole history: a secret in an old commit still leaks
+      - name: gitleaks (any secret blocks)
+        uses: docker://zricethezav/gitleaks:v8.30.1
+        with:
+          args: git --redact --no-banner -v .
+      - name: trivy fs (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q .
+
+  build:
+    needs: [lint, test, scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: build the runtime image once
+        run: |
+          docker build --build-arg APP_VERSION="${GITHUB_SHA::7}" -t "$IMAGE:${GITHUB_SHA::7}" .
+          docker image inspect -f 'user={{.Config.User}} size={{.Size}}' "$IMAGE:${GITHUB_SHA::7}"
+      - name: smoke test
+        env:
+          SMOKE_HOST: docker               # the CI Docker daemon publishes the test port
+        run: scripts/smoke.sh "$IMAGE:${GITHUB_SHA::7}"
+      - name: export the image for the scanner
+        run: docker save -o image.tar "$IMAGE:${GITHUB_SHA::7}"
+      - name: trivy image (HIGH or CRITICAL with a fix blocks)
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+        with:
+          args: image --input image.tar --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 -q

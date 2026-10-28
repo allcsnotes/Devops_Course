@@ -1,0 +1,5 @@
+# name   role
+web-01   storefront and API
+db-01    PostgreSQL
+  bastion   the only door in
+nas-01   backups on \\nas-01\daily

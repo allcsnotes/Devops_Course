@@ -1,0 +1,16 @@
+# An ACME issuer: the same kind you'd point at Let's Encrypt, here pointed at Pebble
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: pebble
+spec:
+  acme:
+    server: https://pebble.pebble.svc:14000/dir   # Let's Encrypt: https://acme-v02.api.letsencrypt.org/directory
+    email: asha@example.com
+    caBundle: LAB_ROOT_CA_BASE64                   # Pebble's HTTPS cert comes from the lab CA
+    privateKeySecretRef:
+      name: pebble-account                         # the ACME account key
+    solvers:
+    - http01:
+        ingress:
+          ingressClassName: traefik                # solve HTTP-01 through Traefik

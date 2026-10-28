@@ -1,0 +1,175 @@
+# allcsvideos platform: the whole stack, one command (make up / docker compose up -d --wait)
+name: do-m07b01
+
+x-labels: &labels
+  course: devops
+
+x-hardened: &hardened              # every service: M07-L03 rules
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+  restart: unless-stopped
+  labels: *labels
+
+x-build-labels: &build-labels      # OCI labels, filled in by make / scripts/release.sh
+  org.opencontainers.image.source: ${GIT_URL:-unknown}
+  org.opencontainers.image.revision: ${GIT_SHA:-unknown}
+  org.opencontainers.image.version: ${VERSION:-dev}
+  course: devops
+
+services:
+  storefront:                      # the web: static site on unprivileged nginx
+    <<: *hardened
+    image: ${IMAGE_PREFIX:-do-m07b01}/storefront:${TAG:-dev}
+    build:
+      context: ./storefront
+      labels: *build-labels
+    ports:
+      - "127.0.0.1:${STOREFRONT_PORT:-8080}:8080"
+    networks: [front]
+    depends_on:
+      gateway: {condition: service_healthy}
+      copilot: {condition: service_healthy, required: false}
+    mem_limit: 64m
+    pids_limit: 50
+
+  gateway:                         # the API edge: Spring Cloud Gateway (Spring Boot course)
+    <<: *hardened
+    image: ${IMAGE_PREFIX:-do-m07b01}/gateway:${TAG:-dev}
+    build:
+      context: ./api
+      args: {SERVICE: gateway, VERSION: "${VERSION:-dev}"}
+      labels: *build-labels
+    environment:
+      REDIS_HOST: redis
+      MANAGEMENT_HEALTH_REDIS_ENABLED: "false"   # the rate limiter fails open without Redis
+    networks: [front, back]
+    depends_on:
+      catalog: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    mem_limit: 512m
+    pids_limit: 200
+
+  catalog:                         # the course catalog service (Spring Boot course)
+    <<: *hardened
+    image: ${IMAGE_PREFIX:-do-m07b01}/catalog:${TAG:-dev}
+    build:
+      context: ./api
+      args: {SERVICE: catalog-service, VERSION: "${VERSION:-dev}"}
+      labels: *build-labels
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/   # secret files -> properties
+      SPRING_FLYWAY_ENABLED: "false"                  # the migrate job owns the schema
+      SPRING_KAFKA_LISTENER_AUTO_STARTUP: "false"     # no saga services in this stack yet
+      SPRING_KAFKA_ADMIN_AUTO_CREATE: "false"
+      OUTBOX_RELAY_DELAY: 1h
+    secrets:
+      - source: db_password
+        target: spring.datasource.password
+    networks: [back]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    mem_limit: 512m
+    pids_limit: 200
+
+  migrate:                         # one-off job: Flyway applies db/migration, then exits 0
+    image: flyway/flyway:12.4.0-alpine
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: [/tmp]
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/catalog
+      FLYWAY_USER: catalog
+      FLYWAY_LOCATIONS: filesystem:/flyway/migrations
+    secrets: [db_password]
+    volumes:
+      - ./api/catalog-service/src/main/resources/db/migration:/flyway/migrations:ro
+    entrypoint: ["sh", "-c", "FLYWAY_PASSWORD=$$(cat /run/secrets/db_password) exec flyway migrate"]
+    networks: [back]
+    depends_on:
+      db: {condition: service_healthy}
+    labels: *labels
+
+  db:
+    <<: *hardened
+    image: postgres:18.6-alpine3.24
+    user: "70:70"                  # postgres in the Alpine image, never root
+    environment:
+      POSTGRES_USER: catalog
+      POSTGRES_DB: catalog
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    tmpfs: [/tmp, /var/run/postgresql]
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "catalog", "-d", "catalog"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    mem_limit: 256m
+    pids_limit: 100
+
+  redis:                           # cache only: nothing saved to disk
+    <<: *hardened
+    image: redis:8.10.2-alpine3.23
+    user: "999:1000"               # redis user in the Alpine image
+    command: ["redis-server", "--save", "", "--appendonly", "no",
+              "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    mem_limit: 128m
+    pids_limit: 50
+
+  copilot:                         # Course Copilot: keyword answers, no AI model in this stack
+    <<: *hardened
+    profiles: [copilot]
+    image: ${IMAGE_PREFIX:-do-m07b01}/copilot:${TAG:-dev}
+    build:
+      context: ./copilot
+      target: runtime
+      args: {APP_VERSION: "${VERSION:-dev}"}
+      labels: *build-labels
+    networks: [front]
+    mem_limit: 256m
+    pids_limit: 100
+
+  netshoot:                        # debug toolbox, on both networks
+    profiles: [debug]
+    image: nicolaka/netshoot:v0.16
+    command: ["sleep", "infinity"]
+    networks: [front, back]
+    labels: *labels
+
+  adminer:                         # database web UI, loopback only
+    profiles: [debug]
+    image: adminer:6.1.2
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks: [front, back]
+    labels: *labels
+
+networks:
+  front:
+    labels: *labels
+  back:
+    internal: true                 # no route out
+    labels: *labels
+
+volumes:
+  pgdata:
+    labels: *labels
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt   # git-ignored; make up creates a random one

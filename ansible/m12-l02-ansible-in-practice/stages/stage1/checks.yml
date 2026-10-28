@@ -1,0 +1,27 @@
+---
+- name: Register, when and loop
+  hosts: all
+
+  tasks:
+    - name: Ask for the nginx version
+      ansible.builtin.command: nginx -v
+      register: nginx_v
+      changed_when: false
+      failed_when: false
+
+    - name: Show what was registered
+      ansible.builtin.debug:
+        msg: "rc={{ nginx_v.rc }}: {{ nginx_v.stderr or nginx_v.msg }}"
+
+    - name: Only where nginx is missing
+      ansible.builtin.debug:
+        msg: "no nginx on {{ inventory_hostname }}, and that is fine for a database"
+      when: nginx_v.rc != 0
+
+    - name: One line per user, from a list of dicts
+      ansible.builtin.debug:
+        msg: "{{ item.name }}: {{ item.comment }}, groups {{ item.groups }}"
+      loop: "{{ common_users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      run_once: true

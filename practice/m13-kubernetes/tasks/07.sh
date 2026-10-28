@@ -1,0 +1,1 @@
+kubectl get pods -o custom-columns='POD:.metadata.name,PHASE:.status.phase,WAITING:.status.containerStatuses[*].state.waiting.reason,LAST-EXIT:.status.containerStatuses[*].lastState.terminated.reason,RESTARTS:.status.containerStatuses[*].restartCount'

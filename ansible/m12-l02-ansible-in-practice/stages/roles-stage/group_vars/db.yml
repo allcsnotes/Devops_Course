@@ -1,0 +1,6 @@
+# the database servers
+db_name: allcsvideos
+db_user: allcs_app
+db_password: demo-db-password-123   # FAKE demo value, still in plain text
+# only the admin may log in to a database server (as in module 2, lesson 6)
+ssh_allow_users: [asha]

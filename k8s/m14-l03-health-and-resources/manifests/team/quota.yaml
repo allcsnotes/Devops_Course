@@ -1,0 +1,12 @@
+# namespace team-a may request at most 300m CPU and 512Mi memory in total
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: team-a
+spec:
+  hard:
+    requests.cpu: 300m
+    requests.memory: 512Mi
+    limits.memory: 1Gi
+    pods: "10"

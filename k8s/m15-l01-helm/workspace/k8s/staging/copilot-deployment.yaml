@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot
+  labels: {app: copilot, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: copilot}
+  template:
+    metadata:
+      labels: {app: copilot, course: devops}
+    spec:
+      containers:
+      - name: copilot
+        image: allcsvideos/api:2.5.0
+        ports:
+        - {name: http, containerPort: 8080}
+        env:
+        - {name: DATABASE_URL, value: "postgres://copilot@db.allcsvideos.internal:5432/copilot"}

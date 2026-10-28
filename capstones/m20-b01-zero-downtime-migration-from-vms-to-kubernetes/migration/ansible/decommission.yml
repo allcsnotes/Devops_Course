@@ -1,0 +1,12 @@
+---
+# decommission.yml: after the cutover. Stop the API on the VMs (SIGTERM: it drains), keep the servers for a week.
+- name: Retire the catalog API from the VM fleet
+  hosts: web
+  become: true
+  serial: 1                       # one server at a time
+  tasks:
+    - name: Stop allcs-api and keep it off at boot
+      ansible.builtin.systemd_service:
+        name: allcs-api
+        state: stopped
+        enabled: false

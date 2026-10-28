@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+[Unit]
+Description=allcsvideos catalog API
+After=network-online.target
+
+[Service]
+User=allcs
+Group=allcs
+WorkingDirectory={{ api_home }}
+EnvironmentFile=/etc/allcs-api.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart={{ api_home }}/venv/bin/python api.py
+# stop = SIGTERM, then up to 30 s to drain before SIGKILL
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

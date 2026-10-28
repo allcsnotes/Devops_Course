@@ -1,0 +1,46 @@
+# deploy.yml (M08-L05): OIDC instead of a stored key. The job asks GitHub's token service for a short-lived ID token,
+# shows its claims, and (once you set AWS_ROLE_ARN, see the lesson README, step 9) trades it for temporary AWS credentials.
+# No AWS key is stored anywhere. The role in aws/ has NO permissions policy: it can only say who it is.
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write   # this job may request an OIDC token
+env:
+  AUDIENCE: sts.amazonaws.com
+  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}   # a repository VARIABLE (not a secret): an ARN is not a credential
+  AWS_REGION: ap-south-1
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get a short-lived ID token
+        run: |
+          JWT=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" | jq -r .value)
+          echo "::add-mask::$JWT"
+          echo "JWT=$JWT" >> "$GITHUB_ENV"
+      - name: Show its header and claims (never paste a real token into a website)
+        run: |
+          for i in 1 2; do
+            s=$(echo "$JWT" | cut -d. -f$i | tr '_-' '/+')
+            while [ $(( ${#s} % 4 )) -ne 0 ]; do s="$s="; done
+            echo "$s" | base64 -d | jq '{alg, kid, iss, aud, sub, ref, repository, iat, exp} | with_entries(select(.value != null))'
+          done
+      - name: Exchange it for temporary AWS credentials
+        if: env.AWS_ROLE_ARN != ''
+        run: |
+          set -o pipefail
+          aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" \
+            --role-session-name "gh-${{ github.run_id }}" --web-identity-token "$JWT" \
+            --duration-seconds 900 --output json > /tmp/creds.json
+          export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId /tmp/creds.json)
+          export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey /tmp/creds.json)
+          export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken /tmp/creds.json)
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"; echo "::add-mask::$AWS_SESSION_TOKEN"
+          echo "expires: $(jq -r .Credentials.Expiration /tmp/creds.json)"
+          rm /tmp/creds.json
+          aws sts get-caller-identity --query Arn --output text

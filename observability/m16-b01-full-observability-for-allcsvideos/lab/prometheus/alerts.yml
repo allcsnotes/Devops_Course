@@ -1,0 +1,41 @@
+groups:
+  - name: symptoms              # page: users feel these
+    rules:
+      - alert: HighErrorRate
+        expr: job_route:http_errors:ratio_rate1m > 0.05
+        for: 1m
+        keep_firing_for: 1m
+        labels: {severity: page, team: platform}
+        annotations:
+          summary: "{{ $labels.job }} {{ $labels.route }}: {{ $value | humanizePercentage }} of requests fail"
+          runbook_url: "https://runbooks.allcsvideos.example/high-error-rate"
+      - alert: HighLatencyP99
+        expr: job:http_request_duration_seconds:p99_1m > 1
+        for: 1m
+        labels: {severity: page, team: platform}
+        annotations:
+          summary: "{{ $labels.job }} p99 latency is {{ $value | humanizeDuration }}"
+          runbook_url: "https://runbooks.allcsvideos.example/high-latency"
+      - alert: TargetDown
+        expr: up{job=~"api|copilot"} == 0
+        for: 1m
+        labels: {severity: page, team: platform}
+        annotations:
+          summary: "{{ $labels.job }} is not being scraped"
+          runbook_url: "https://runbooks.allcsvideos.example/target-down"
+  - name: causes                # tickets: worth a look, not worth waking anyone
+    rules:
+      - alert: DbPoolSaturated
+        expr: job:db_pool:saturation >= 0.9
+        for: 1m
+        labels: {severity: ticket, team: platform}
+        annotations:
+          summary: "{{ $labels.job }} db connection pool {{ $value | humanizePercentage }} used"
+          runbook_url: "https://runbooks.allcsvideos.example/db-pool-saturated"
+  - name: meta
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels: {severity: none}
+        annotations:
+          summary: "always firing: proves the alerting pipeline works end to end"

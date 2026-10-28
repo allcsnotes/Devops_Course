@@ -1,0 +1,33 @@
+# the fix: a startupProbe holds back liveness until the app has started (up to 12 x 5 = 60 s)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warm
+  template:
+    metadata:
+      labels:
+        app: warm
+    spec:
+      containers:
+      - name: api
+        image: health-api:1.0.0
+        env:
+        - name: STARTUP_SECONDS
+          value: "40"
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 12
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 3

@@ -1,0 +1,9 @@
+# Platform defaults for every python-service. Change them here, in Git: Argo CD applies them.
+image:
+  repository: registry.allcsvideos.example/${{ values.name }}
+  tag: "0.1.0"
+replicas: 2
+port: 8080
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {memory: 128Mi}

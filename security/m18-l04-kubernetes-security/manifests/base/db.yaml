@@ -1,0 +1,45 @@
+# data namespace: PostgreSQL for allcsvideos. Every secret value in this lab is FAKE.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-creds
+  namespace: data
+stringData:
+  username: allcs
+  password: FAKE-lab-db-pass-0001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: data
+spec:
+  selector:
+    matchLabels: {app: db}
+  template:
+    metadata:
+      labels: {app: db, team: platform}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:18.6-alpine3.24
+        env:
+        - {name: POSTGRES_USER, valueFrom: {secretKeyRef: {name: db-creds, key: username}}}
+        - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: db-creds, key: password}}}
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - {name: data, mountPath: /var/lib/postgresql}
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: data
+spec:
+  selector: {app: db}
+  ports:
+  - port: 5432

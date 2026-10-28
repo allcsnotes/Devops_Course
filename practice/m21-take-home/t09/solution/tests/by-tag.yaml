@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: by-tag}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: by-tag}}
+  template:
+    metadata: {labels: {app: by-tag}}
+    spec:
+      containers:
+        - {name: app, image: "registry.lab:5000/allcs/course-search:1.0.0"}

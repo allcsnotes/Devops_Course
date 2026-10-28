@@ -1,0 +1,13 @@
+# probe: a toolbox pod (curl, dig, nslookup) that plays a user inside the cluster
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe
+  labels: {app: probe, course: devops}
+spec:
+  containers:
+  - name: probe
+    image: nicolaka/netshoot:v0.16
+    command: ["sleep", "infinity"]
+    resources:
+      requests: {cpu: 10m, memory: 16Mi}

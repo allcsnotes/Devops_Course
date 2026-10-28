@@ -1,0 +1,9 @@
+---
+# the load balancer: port 80 open to everyone
+ufw_allow:
+  - port: 80
+    from: [any]
+
+hc_services: [nginx, ssh]
+hc_endpoints:
+  - pool=http://localhost/health

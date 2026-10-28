@@ -1,0 +1,32 @@
+# one folder, three sources: a ConfigMap, a Secret and the pod's own labels
+apiVersion: v1
+kind: Pod
+metadata:
+  name: projected-demo
+  labels:
+    app: projected-demo
+spec:
+  containers:
+  - name: c
+    image: busybox:1.37.0
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - name: all-config
+      mountPath: /etc/app
+      readOnly: true
+  volumes:
+  - name: all-config
+    projected:
+      sources:
+      - configMap:
+          name: api-features
+      - secret:
+          name: db-creds
+          items:
+          - key: password
+            path: db-password
+      - downwardAPI:
+          items:
+          - path: labels
+            fieldRef:
+              fieldPath: metadata.labels

@@ -1,0 +1,5 @@
+# who reviews what: each rule is a Go regular expression for a file path
+hc/hc.conf @rahul
+hc/systemd/.* @asha
+hc/lib/.* @asha
+.gitea/CODEOWNERS @asha

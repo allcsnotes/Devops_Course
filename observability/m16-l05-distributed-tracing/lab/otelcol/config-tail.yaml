@@ -1,0 +1,50 @@
+# config-tail.yaml: the same Collector, plus tail sampling. Wait for the whole trace, then decide what to keep.
+receivers:
+  otlp:
+    protocols:
+      grpc: {endpoint: 0.0.0.0:4317}
+      http: {endpoint: 0.0.0.0:4318}
+
+processors:
+  memory_limiter: {check_interval: 1s, limit_mib: 200}
+  batch: {timeout: 2s, send_batch_size: 512}
+  tail_sampling:
+    decision_wait: 10s          # hold each trace 10 s after its first span arrives, then decide
+    num_traces: 20000           # traces kept in memory while waiting
+    policies:                   # keep the trace if ANY policy says sample
+      - name: keep-errors
+        type: status_code
+        status_code: {status_codes: [ERROR]}
+      - name: keep-slow
+        type: latency
+        latency: {threshold_ms: 500}
+      - name: keep-10-percent-of-the-rest
+        type: probabilistic
+        probabilistic: {sampling_percentage: 10}
+
+exporters:
+  otlp_grpc/jaeger:
+    endpoint: jaeger:4317
+    tls: {insecure: true}
+  otlp_grpc/tempo:
+    endpoint: tempo:4317
+    tls: {insecure: true}
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, tail_sampling, batch]
+      exporters: [otlp_grpc/jaeger, otlp_grpc/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp_http/loki]
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus: {host: 0.0.0.0, port: 8888}

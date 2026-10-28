@@ -1,0 +1,4 @@
+---
+nginx_worker_connections: 1024
+# set on the web servers: forward port 80 to the app on 127.0.0.1:<port>
+nginx_app_port: null

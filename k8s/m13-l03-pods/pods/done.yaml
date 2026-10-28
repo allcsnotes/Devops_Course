@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: done
+  labels:
+    course: devops
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: report
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo report built; exit 0"]

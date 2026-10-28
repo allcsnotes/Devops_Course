@@ -1,0 +1,18 @@
+groups:
+  - name: copilot
+    rules:
+      # requests a second, by status code (level:metric:operations)
+      - record: job_code:copilot_requests:rate5m
+        expr: sum by (job, code) rate(copilot_requests_total{route="/ask"}[5m])
+
+      # share of answers that failed
+      - record: job:copilot_errors:ratio_rate5m
+        expr: |
+          sum by (job) (rate(copilot_requests_total{route="/ask", code=~"5.."}[5m]))
+            / sum by (job) (rate(copilot_requests_total{route="/ask"}[5m]))
+
+      # 95th percentile latency in seconds
+      - record: job:copilot_latency_seconds:p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job, le) (rate(copilot_request_duration_seconds_bucket{route="/ask"}[5m])))

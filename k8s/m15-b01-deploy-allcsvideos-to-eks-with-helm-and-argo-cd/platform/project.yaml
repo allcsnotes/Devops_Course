@@ -1,0 +1,13 @@
+# argocd-server normally creates the "default" project on start-up.
+# We run Argo CD without the server (3-pod sandbox limit), so we declare it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+spec:
+  sourceRepos: ["*"]
+  destinations:
+    - { server: "*", namespace: "*" }
+  clusterResourceWhitelist:
+    - { group: "*", kind: "*" }

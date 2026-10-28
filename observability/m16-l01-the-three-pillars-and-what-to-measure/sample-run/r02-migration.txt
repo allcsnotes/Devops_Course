@@ -1,0 +1,10 @@
+start 17:27:23
+BEGIN
+ALTER TABLE
+ pg_sleep 
+----------
+ 
+(1 row)
+
+COMMIT
+end 17:27:53

@@ -1,0 +1,88 @@
+# deploy.yml (M09-B01): production deploys for the allcsvideos release, in its OWN repository (deploy-production).
+# Run by hand with a release (short commit) that passed staging, and a reason. The gate reads the staging record and
+# hands over the exact digests staging ran. The deploy job uses the GitHub Environment "production": required
+# reviewers (public repo on the Free plan), and the production SSH key as an environment secret, so the key reaches
+# the job only after a releaser approves. (In the video, on Gitea, write access to this repo was the gate.)
+# Variables: STAGING_RECORD_URL, PROD_HOST, PROD_SSH_PORT, PROD_URL, PROD_KNOWN_HOSTS; env secret: PROD_SSH_KEY.
+name: deploy
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Release that passed staging (short commit, e.g. 1a2b3c4)
+        required: true
+        type: string
+      reason:
+        description: Why are we deploying?
+        required: true
+        type: string
+
+concurrency: production
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.find.outputs.version }}
+      copilot: ${{ steps.find.outputs.copilot }}
+      storefront: ${{ steps.find.outputs.storefront }}
+    env:
+      REV: ${{ inputs.revision }}
+      REASON: ${{ inputs.reason }}
+    steps:
+      - name: Who, what and why
+        run: |
+          echo "requested by: ${{ github.actor }}"
+          echo "release:      $REV"
+          echo "reason:       $REASON"
+      - name: Passed on staging?
+        id: find
+        run: |
+          curl -sf ${{ vars.STAGING_RECORD_URL }} > staging.json
+          jq -e --arg r "$REV" '[.history[] | select(.revision == $r and .smoke == "passed")] | first' staging.json > rel.json \
+            || { echo "refused: $REV never passed the staging smoke tests"; exit 1; }
+          jq -r '"version=\(.version)", "copilot=\(.copilot)", "storefront=\(.storefront)"' rel.json | tee -a "$GITHUB_OUTPUT"
+
+  # deploy + smoke tests in ONE job: every job that names a protected environment waits for its own approval
+  deploy-production:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      URL: ${{ vars.PROD_URL }}
+      COPILOT: ${{ needs.gate.outputs.copilot }}
+      STOREFRONT: ${{ needs.gate.outputs.storefront }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH key and host key for production
+        env:
+          KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN: ${{ vars.PROD_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+      - name: Blue-green deploy ${{ needs.gate.outputs.version }} to production
+        run: >-
+          ssh -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }}
+          deploy ${{ needs.gate.outputs.copilot }} ${{ needs.gate.outputs.storefront }} deploy-${{ github.run_number }}
+          < production.env
+      - name: Same release as staging?
+        run: |
+          curl -sf "$URL/version" | tee version.json; echo
+          jq -e --arg c "$COPILOT" --arg s "$STOREFRONT" \
+            '.copilot == $c and .storefront == $s and .environment == "production"' version.json
+      - name: Storefront, Copilot and prices
+        run: |
+          curl -sf -o /dev/null "$URL/"
+          curl -sf "$URL/copilot/ask?q=docker" | jq -e '.answer | test("DevOps")'
+          curl -sf "$URL/copilot/price?title=DevOps" | jq -e '.price == 499'
+      - name: Mark verified on production
+        if: success()
+        run: ssh -n -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }} smoke deploy-${{ github.run_number }} passed
+      - name: Mark failed on production
+        if: failure()
+        run: ssh -n -p ${{ vars.PROD_SSH_PORT }} deploy@${{ vars.PROD_HOST }} smoke deploy-${{ github.run_number }} failed

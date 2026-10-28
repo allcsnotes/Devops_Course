@@ -1,0 +1,8 @@
+[Unit]
+Description=allcsvideos nightly course report
+After=network-online.target
+
+[Service]
+User=www-data
+EnvironmentFile=/etc/allcs/api.env
+ExecStart=/usr/bin/python3 -u /opt/allcs/report.py

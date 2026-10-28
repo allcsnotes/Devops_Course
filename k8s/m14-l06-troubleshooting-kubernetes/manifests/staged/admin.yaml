@@ -1,0 +1,21 @@
+# staged: an image in a private registry, and no pull secret yet
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  labels: {app: admin, course: devops}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: admin}
+  template:
+    metadata:
+      labels: {app: admin, course: devops}
+    spec:
+      containers:
+      - name: admin
+        image: localhost:5001/allcsvideos/admin:1.0
+        envFrom:
+        - configMapRef: {name: api-config}
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}

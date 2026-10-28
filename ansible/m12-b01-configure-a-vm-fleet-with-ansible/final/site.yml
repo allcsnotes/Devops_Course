@@ -1,0 +1,33 @@
+---
+# site.yml: the whole allcsvideos fleet, from bare servers to serving. Safe to run again: it only fixes drift.
+- name: Base for every server
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: common
+    - role: hardening
+      tags: hardening
+
+- name: App servers
+  hosts: web
+  become: true
+  roles:
+    - role: nginx
+      tags: nginx
+    - role: app
+      tags: app
+
+- name: Load balancer
+  hosts: lb
+  become: true
+  roles:
+    - role: lb
+      tags: lb
+
+- name: Monitoring on every server
+  hosts: all
+  become: true
+  roles:
+    - role: hc_toolkit
+      tags: hc

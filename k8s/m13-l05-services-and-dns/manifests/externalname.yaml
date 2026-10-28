@@ -1,0 +1,8 @@
+# payments: a name in the cluster for a host outside it (example.com stands in)
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments
+spec:
+  type: ExternalName
+  externalName: example.com

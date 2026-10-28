@@ -1,0 +1,15 @@
+# Gitea runner (gitea/runner:5.1.1) config for this lab. Only the options we change
+# (full list: gitea-runner config generate).
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 2
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-24.04-v26.10.01"
+cache:
+  enabled: false
+container:
+  network: tflab-net           # jobs reach http://gitea:3000 and the state database tfstate:5432
+  options: --label lab=tflab
+  docker_host: "-"             # never hand the Docker socket to a job

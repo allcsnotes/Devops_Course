@@ -1,0 +1,11 @@
+# Prometheus for the migration (M20-B01). k6 pushes the students' view (remote write); the VMs' API is scraped.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: api-vm
+    static_configs:
+      - targets: ['10.0.201.11:8080']
+        labels: {pool: vm, instance: web-01}
+      - targets: ['10.0.201.12:8080']
+        labels: {pool: vm, instance: web-02}

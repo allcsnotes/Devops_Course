@@ -1,0 +1,44 @@
+# One Grafana, three data sources, linked to each other (uids pinned on purpose)
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prom
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      exemplarTraceIdDestinations:   # metric -> trace: exemplar diamonds open the trace in Tempo
+        - name: trace_id
+          datasourceUid: tempo
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:                 # log -> trace: the trace_id field becomes a link to Tempo
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: tempo
+          url: "$${__value.raw}"
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:                # trace -> logs: from a span to its log lines
+        datasourceUid: loki
+        tags: [{key: service.name, value: service}]
+        filterByTraceID: true
+        spanStartTimeShift: -1m
+        spanEndTimeShift: 1m
+      tracesToMetrics:               # trace -> metrics: the service's request rate around the span
+        datasourceUid: prom
+        tags: [{key: service.name, value: job}]
+        queries:
+          - name: request rate
+            query: sum(rate(http_requests_total{$$__tags}[1m]))

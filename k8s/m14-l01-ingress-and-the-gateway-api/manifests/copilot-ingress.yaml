@@ -1,0 +1,24 @@
+# The short way: one annotation, and cert-manager creates the Certificate for you
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: copilot
+  annotations:
+    cert-manager.io/cluster-issuer: lab-ca
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - copilot.allcsvideos.test
+    secretName: copilot-tls       # cert-manager creates it
+  rules:
+  - host: copilot.allcsvideos.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: copilot
+            port:
+              name: http

@@ -1,0 +1,10 @@
+# The SLIs from lesson 1, measured where the students are, over a short 30 s window for experiments
+groups:
+  - name: sli
+    rules:
+      - record: sli:availability:ratio_rate30s      # good requests / all requests (5xx and no-answer are bad)
+        expr: |
+          sum(rate(http_requests_total{job="students", code!~"5..|error"}[30s]))
+          / sum(rate(http_requests_total{job="students"}[30s]))
+      - record: sli:latency_p99:30s                 # the 99th percentile, seconds
+        expr: histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job="students"}[30s])))

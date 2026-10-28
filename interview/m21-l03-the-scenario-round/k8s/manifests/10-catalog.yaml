@@ -1,0 +1,42 @@
+# catalog: 2 replicas, one worker each. Liveness and readiness both ask /healthz on the worker's port.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: catalog, namespace: allcs}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: catalog}}
+  template:
+    metadata: {labels: {app: catalog}}
+    spec:
+      containers:
+      - name: api
+        image: scenario-catalog:1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - {name: APP_NAME, value: catalog}
+        - {name: WORK_MS, value: "20"}
+        - {name: CACHE_MB, value: "40"}
+        - {name: TZ, value: "IST-5:30"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 2
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 3
+        resources:
+          requests: {cpu: 250m}
+          limits: {cpu: 500m}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: catalog, namespace: allcs}
+spec:
+  selector: {app: catalog}
+  ports:
+  - {port: 80, targetPort: http}

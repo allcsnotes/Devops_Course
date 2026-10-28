@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+error_log /var/log/nginx/error.log;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections {{ nginx_worker_connections }};
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    server_tokens off;
+    keepalive_timeout 65;
+    access_log /var/log/nginx/access.log;
+    # our sites only (the package's default site in sites-enabled is not loaded)
+    include /etc/nginx/conf.d/*.conf;
+}

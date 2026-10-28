@@ -1,0 +1,3 @@
+#!/bin/sh
+# runs only after a certificate was really renewed
+nginx -s reload

@@ -1,0 +1,8 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: allcs-api
+spec:
+  maxUnavailable: 1                                  # a node drain may take only one pod at a time
+  selector:
+    matchLabels: {app: allcs-api}

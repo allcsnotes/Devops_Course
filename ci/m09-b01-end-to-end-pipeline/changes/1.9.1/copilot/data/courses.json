@@ -1,0 +1,7 @@
+[
+  {"title": "DSA", "topics": ["arrays", "graphs", "dp", "trees"]},
+  {"title": "System Design", "topics": ["caching", "sharding", "queues"]},
+  {"title": "Spring Boot", "topics": ["java", "spring", "jpa"]},
+  {"title": "GenAI", "topics": ["llm", "rag", "embeddings"]},
+  {"title": "DevOps", "topics": ["docker", "kubernetes", "terraform", "linux"], "level": "beginner to advanced"}
+]

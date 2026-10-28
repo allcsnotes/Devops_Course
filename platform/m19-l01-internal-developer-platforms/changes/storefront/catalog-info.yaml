@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: storefront
+  description: The allcsvideos.com website (Vite site on unprivileged nginx)
+  tags: [web, nginx]
+spec:
+  type: website
+  lifecycle: production
+  owner: group:courses
+  system: allcsvideos
+  consumesApis: [catalog-api]
+  dependsOn: [component:gateway]

@@ -1,0 +1,57 @@
+# The allcsvideos alert rules as many teams really have them: per instance and per route, causes and symptoms mixed.
+# (Lesson 6 showed how to trim this. Here the noise is the point: one incident fires dozens of alerts.)
+groups:
+  - name: recording
+    rules:
+      - record: instance_route:http_errors:ratio_rate1m
+        expr: sum by (service, instance, route) (rate(http_requests_total{status=~"5.."}[1m])) / sum by (service, instance, route) (rate(http_requests_total[1m]))
+      - record: instance_route:http_p95:1m
+        expr: histogram_quantile(0.95, sum by (service, instance, route, le) (rate(http_request_duration_seconds_bucket[1m])))
+      - record: service:http_errors:ratio_rate1m
+        expr: sum by (service) (rate(http_requests_total{status=~"5.."}[1m])) / sum by (service) (rate(http_requests_total[1m]))
+      - record: service:http_errors:ratio_rate5m
+        expr: sum by (service) (rate(http_requests_total{status=~"5.."}[5m])) / sum by (service) (rate(http_requests_total[5m]))
+      - record: service:http_p95:1m
+        expr: histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket[1m])))
+  - name: allcsvideos
+    rules:
+      - alert: HighErrorRate
+        expr: instance_route:http_errors:ratio_rate1m > 0.05
+        for: 30s
+        labels: {severity: page}
+        annotations: {summary: "{{ $labels.instance }} {{ $labels.route }}: {{ $value | humanizePercentage }} errors"}
+      - alert: HighLatency
+        expr: instance_route:http_p95:1m > 0.5
+        for: 30s
+        labels: {severity: ticket}
+        annotations: {summary: "{{ $labels.instance }} {{ $labels.route }}: p95 {{ $value | humanizeDuration }}"}
+      - alert: ErrorBudgetBurnFast
+        expr: service:http_errors:ratio_rate5m > (14.4 * 0.005) and service:http_errors:ratio_rate1m > (14.4 * 0.005)
+        for: 30s
+        labels: {severity: page}
+        annotations: {summary: "{{ $labels.service }}: {{ $value | humanizePercentage }} of requests failing (SLO 99.5%)"}
+      - alert: ErrorBudgetBurnSlow
+        expr: service:http_errors:ratio_rate5m > (6 * 0.005)
+        for: 30s
+        labels: {severity: ticket}
+        annotations: {summary: "{{ $labels.service }}: slow error budget burn"}
+      - alert: RequestsPilingUp
+        expr: http_requests_in_flight > 3
+        for: 30s
+        labels: {severity: ticket}
+        annotations: {summary: "{{ $labels.instance }}: {{ $value }} requests in flight"}
+      - alert: UpstreamErrors
+        expr: sum by (service, instance, upstream) (rate(upstream_errors_total[1m])) > 0.1
+        for: 30s
+        labels: {severity: ticket}
+        annotations: {summary: "{{ $labels.instance }}: calls to {{ $labels.upstream }} failing"}
+      - alert: LatencySLOBreach
+        expr: service:http_p95:1m > 1
+        for: 30s
+        labels: {severity: page}
+        annotations: {summary: "{{ $labels.service }}: p95 above 1 s"}
+      - alert: TargetDown
+        expr: up == 0
+        for: 30s
+        labels: {severity: page}
+        annotations: {summary: "{{ $labels.instance }} is down"}

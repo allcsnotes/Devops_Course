@@ -1,0 +1,122 @@
+# M17-L02 lab: the allcsvideos catalog API + PostgreSQL, observed by Prometheus, Loki and Tempo, alerting through
+# Alertmanager to a lab pager, plus a lab status page and Grafana. All images pinned.
+name: incident-lab
+x-lab: &lab
+  labels: [course=devops]
+services:
+  api:
+    <<: *lab
+    image: catalog-api:${API_VERSION:-1.4.2}
+    environment:
+      DATABASE_URL: postgresql://postgres:demo-password-123@db:5432/catalog   # fake lab password
+      TZ: IST-5:30
+      OTEL_SERVICE_NAME: catalog-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_PYTHON_FLASK_EXCLUDED_URLS: "healthz,metrics"
+    ports: ["127.0.0.1:8080:8080"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+      interval: 5s
+      retries: 10
+    depends_on: {db: {condition: service_healthy}}
+    cpus: 1.0
+    mem_limit: 192m
+  db:
+    <<: *lab
+    image: postgres:18.6-alpine3.24
+    environment: {POSTGRES_DB: catalog, POSTGRES_PASSWORD: demo-password-123, TZ: Asia/Kolkata}   # fake lab password
+    volumes: ["./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro", "db-data:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "catalog"]
+      interval: 2s
+      retries: 120
+    cpus: 1.0
+    mem_limit: 384m
+  prometheus:
+    <<: *lab
+    image: prom/prometheus:v3.15.0
+    volumes: ["./prometheus:/etc/prometheus:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+    cpus: 0.5
+    mem_limit: 256m
+  alertmanager:
+    <<: *lab
+    image: prom/alertmanager:v0.34.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes: ["./alertmanager:/etc/alertmanager:ro"]
+    ports: ["127.0.0.1:9093:9093"]
+    cpus: 0.25
+    mem_limit: 96m
+  pager:
+    <<: *lab
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/pager.py"]
+    environment: {PRIMARY: asha, SECONDARY: rahul, ESCALATE_AFTER: "120", TZ: IST-5:30}
+    volumes: ["./pager:/srv:ro", "./incident:/data"]
+    ports: ["127.0.0.1:8081:8080"]
+    cpus: 0.25
+    mem_limit: 64m
+  status:
+    <<: *lab
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/srv/status.py"]
+    environment: {TZ: IST-5:30}
+    volumes: ["./status:/srv:ro", "./incident:/data"]
+    ports: ["127.0.0.1:8082:8080"]
+    cpus: 0.25
+    mem_limit: 64m
+  loki:
+    <<: *lab
+    image: grafana/loki:3.7.9
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes: ["./loki:/etc/loki:ro", "loki-data:/loki"]
+    ports: ["127.0.0.1:3100:3100"]
+    cpus: 0.5
+    mem_limit: 384m
+  alloy:
+    <<: *lab
+    image: grafana/alloy:v1.21.0
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data"]
+    volumes: ["./alloy:/etc/alloy:ro", "/var/run/docker.sock:/var/run/docker.sock:ro"]
+    depends_on: [loki]
+    cpus: 0.5
+    mem_limit: 256m
+  tempo:
+    <<: *lab
+    image: grafana/tempo:3.1.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes: ["./tempo:/etc/tempo:ro", "tempo-data:/var/tempo"]
+    ports: ["127.0.0.1:3200:3200"]
+    cpus: 0.5
+    mem_limit: 384m
+  grafana:
+    <<: *lab
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"        # lab only: no login screen
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: Asia/Kolkata
+    volumes: ["./grafana/provisioning:/etc/grafana/provisioning:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+    cpus: 0.5
+    mem_limit: 768m
+  load:
+    <<: *lab
+    image: python:3.13.16-slim
+    profiles: [load]
+    command: ["python", "-u", "/load/traffic.py"]
+    environment: {RATE: "${RATE:-10}", RUN: "${RUN:-run}", TZ: IST-5:30}
+    volumes: ["./load:/load:ro", "./runs:/runs"]
+    cpus: 0.5
+volumes:
+  db-data: {labels: [course=devops]}
+  loki-data: {labels: [course=devops]}
+  tempo-data: {labels: [course=devops]}
+networks:
+  default:
+    labels: [course=devops]

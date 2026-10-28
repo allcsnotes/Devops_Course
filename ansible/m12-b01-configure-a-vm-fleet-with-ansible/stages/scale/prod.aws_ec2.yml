@@ -1,0 +1,13 @@
+# inventory/prod.aws_ec2.yml: a dynamic inventory (example only, not run in this lab: there is no AWS here)
+plugin: amazon.aws.aws_ec2
+regions:
+  - ap-south-1
+filters:
+  tag:Environment: production
+  instance-state-name: running
+keyed_groups:
+  # one group per value of the Role tag: Role=web -> group web, Role=lb -> group lb
+  - key: ec2_tags.Role
+    separator: ''
+compose:
+  ansible_host: private_ip_address

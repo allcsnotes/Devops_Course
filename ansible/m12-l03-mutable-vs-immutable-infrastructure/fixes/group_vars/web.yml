@@ -1,0 +1,9 @@
+# the web servers
+nginx_server_name: www.allcsvideos.test
+# the 2 a.m. fix, now reviewed in Git
+nginx_worker_connections: 1024
+# release 2: warn earlier about disk space
+hc_disk_warn: 75
+hc_services: [nginx, ssh]
+hc_endpoints:
+  - storefront=http://localhost/health

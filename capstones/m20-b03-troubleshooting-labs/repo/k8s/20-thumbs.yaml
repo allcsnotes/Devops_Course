@@ -1,0 +1,40 @@
+# thumbs: the thumbnail service. It warms a 48 MB cache at start, so it needs more than 48 MiB of memory.
+# Recreate: only one thumbs pod at a time (it owns the thumbnail work queue), so a bad change takes it down.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thumbs
+  namespace: allcs
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: thumbs}
+  template:
+    metadata:
+      labels: {app: thumbs}
+    spec:
+      containers:
+      - name: thumbs
+        image: trouble-api:1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - {name: CACHE_MB, value: "48"}
+        ports:
+        - {name: http, containerPort: 8080}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          periodSeconds: 3
+        resources:
+          requests: {cpu: 10m, memory: 96Mi}
+          limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thumbs
+  namespace: allcs
+spec:
+  selector: {app: thumbs}
+  ports:
+  - {port: 80, targetPort: http}

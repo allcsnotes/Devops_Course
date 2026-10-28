@@ -1,0 +1,229 @@
+[
+ {
+  "id": "disk-full",
+  "from": "M02-L05",
+  "evidence": "asha@web-01:~$ curl -s --data-binary @/tmp/lesson-05.mp4 'localhost:8080/upload?name=lesson-05.mp4'\n{\"error\": \"upload failed: No space left on device\", \"file\": \"lesson-05.mp4\"}\nasha@web-01:~$\n\nasha@web-01:~$ df -h /data\nFilesystem      Size  Used Avail Use% Mounted on\ntmpfs            64M   64M     0 100% /data\nasha@web-01:~$",
+  "root_cause": "the disk (/data) is full",
+  "keywords": [
+   [
+    "disk",
+    "space",
+    "storage"
+   ]
+  ]
+ },
+ {
+  "id": "cert-expired",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -sS https://allcsvideos.test/\ncurl: (60) SSL certificate problem: certificate has expired\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could not\nestablish a secure connection to it. To learn more about this situation and\nhow to fix it, please visit the web page mentioned above.\nasha@laptop:~$",
+  "root_cause": "the TLS certificate has expired",
+  "keywords": [
+   [
+    "expired"
+   ],
+   [
+    "certificate",
+    "cert",
+    "ssl",
+    "tls"
+   ]
+  ]
+ },
+ {
+  "id": "firewall-drop",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -sS --connect-timeout 5 https://allcsvideos.test/\ncurl: (28) Failed to connect to allcsvideos.test port 443 after 5006 ms: Timeout was reached\nasha@laptop:~$\n\nasha@laptop:~$ sudo traceroute -n -T -p 443 -m 4 10.0.56.10\ntraceroute to 10.0.56.10 (10.0.56.10), 4 hops max, 60 byte packets\n 1  10.0.55.1  0.041 ms  0.005 ms  0.004 ms\n 2  * * *\n 3  * * *\n 4  * * *\nasha@laptop:~$\n\nasha@router:~$ sudo iptables -L FORWARD -n -v --line-numbers\nChain FORWARD (policy ACCEPT 12 packets, 832 bytes)\nnum   pkts bytes target     prot opt in     out     source               destination\n1       39  2340 DROP       6    --  *      *       0.0.0.0/0            10.0.56.10           tcp dp\nt:443\nasha@router:~$",
+  "root_cause": "a firewall rule on the router drops port 443",
+  "keywords": [
+   [
+    "firewall",
+    "iptables",
+    "drop",
+    "rule"
+   ]
+  ]
+ },
+ {
+  "id": "proxy-down",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -sS --connect-timeout 5 https://allcsvideos.test/\ncurl: (7) Failed to connect to allcsvideos.test port 443 after 0 ms: Couldn't connect to server\nasha@laptop:~$ nc -zv -w 5 10.0.56.10 443\nnc: connect to 10.0.56.10 port 443 (tcp) failed: Connection refused\nasha@laptop:~$\n\nasha@proxy-01:~$ sudo ss -tlnp\nState      Recv-Q     Send-Q         Local Address:Port           Peer Address:Port     Process\nLISTEN     0          4096              127.0.0.11:46489               0.0.0.0:*",
+  "root_cause": "nginx on the proxy is not running (nothing listens on 443)",
+  "keywords": [
+   [
+    "nginx",
+    "proxy",
+    "web server"
+   ],
+   [
+    "not running",
+    "not listening",
+    "down",
+    "stopped",
+    "isn't running",
+    "is not started",
+    "not started"
+   ]
+  ]
+ },
+ {
+  "id": "api-down",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -sS -o /dev/null -w '%{http_code}\\n' https://allcsvideos.test/\n200\nasha@laptop:~$ curl -sS https://allcsvideos.test/api/health\n<html>\n<head><title>502 Bad Gateway</title></head>\n<body>\n<center><h1>502 Bad Gateway</h1></center>\n<hr><center>nginx/1.24.0 (Ubuntu)</center>\n</body>\n</html>\nasha@laptop:~$\n\nasha@proxy-01:~$ sudo tail -n 1 /var/log/nginx/error.log\n2026/10/20 13:27:29 [error] 569#569: *18 connect() failed (111: Connection refused) while connecting\n to upstream, client: 10.0.55.50, server: allcsvideos.test, request: \"GET /api/health HTTP/1.1\", ups\ntream: \"http://10.0.56.30:8080/api/health\", host: \"allcsvideos.test\"\nasha@proxy-01:~$ nc -zv 10.0.56.30 8080\nnc: connect to 10.0.56.30 port 8080 (tcp) failed: Connection refused\nasha@proxy-01:~$\n\nasha@api-01:~$ sudo ss -tlnp\nState      Recv-Q     Send-Q         Local Address:Port           Peer Address:Port     Process\nLISTEN     0          4096              127.0.0.11:34133               0.0.0.0:*\nasha@api-01:~$ tail -n 2 /var/log/api.log\n13:22:38 GET /api/courses 200 0.001s\n13:23:36 GET /api/health 200 0.002s\nasha@api-01:~$",
+  "root_cause": "the API process is not listening on port 8080 (502 from nginx)",
+  "keywords": [
+   [
+    "api",
+    "upstream",
+    "backend",
+    "8080"
+   ],
+   [
+    "not listening",
+    "not running",
+    "down",
+    "refused",
+    "isn't running",
+    "crashed",
+    "stopped"
+   ]
+  ]
+ },
+ {
+  "id": "api-slow",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -sS -o /dev/null -w '%{http_code} %{time_total}s\\n' https://allcsvideos.test/api\n/courses\n504 5.024937s\nasha@laptop:~$\n\nasha@proxy-01:~$ sudo tail -n 1 /var/log/nginx/error.log\n2026/10/20 13:28:01 [error] 569#569: *22 upstream timed out (110: Connection timed out) while readin\ng response header from upstream, client: 10.0.55.50, server: allcsvideos.test, request: \"GET /api/co\nurses HTTP/1.1\", upstream: \"http://10.0.56.30:8080/api/courses\", host: \"allcsvideos.test\"\nasha@proxy-01:~$ sudo tail -n 1 /var/log/nginx/access.log\n10.0.55.50 \"GET /api/courses HTTP/1.1\" 504 rt=5.012 urt=5.013\nasha@proxy-01:~$ grep -n proxy_read_timeout /etc/nginx/sites-enabled/allcsvideos\n18:        proxy_read_timeout 5s;\nasha@proxy-01:~$",
+  "root_cause": "the API is slower than the proxy's 5 s read timeout (504)",
+  "keywords": [
+   [
+    "slow",
+    "timeout",
+    "timed out",
+    "taking too long"
+   ]
+  ]
+ },
+ {
+  "id": "net-latency",
+  "from": "M04-L05",
+  "evidence": "asha@laptop:~$ curl -s -o /dev/null -w @curl-format.txt https://allcsvideos.test/\n   namelookup:  0.000323s\n      connect:  0.111379s\n   appconnect:  0.218085s\n  pretransfer:  0.218144s\nstarttransfer:  0.328587s\n        total:  0.328644s\n         code:  200\nasha@laptop:~$ ping -c 3 10.0.56.10\nPING 10.0.56.10 (10.0.56.10) 56(84) bytes of data.\n64 bytes from 10.0.56.10: icmp_seq=1 ttl=63 time=101 ms\n64 bytes from 10.0.56.10: icmp_seq=2 ttl=63 time=109 ms\n64 bytes from 10.0.56.10: icmp_seq=3 ttl=63 time=102 ms\n\n--- 10.0.56.10 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 2011ms\nrtt min/avg/max/mdev = 101.216/103.895/108.957/3.580 ms\nasha@laptop:~$",
+  "root_cause": "about 100 ms of added network latency on the path",
+  "keywords": [
+   [
+    "latency",
+    "delay"
+   ]
+  ]
+ },
+ {
+  "id": "oom-kill",
+  "from": "M02-L05",
+  "evidence": "root@test-01:/# cat /sys/fs/cgroup/memory.max\n209715200\nroot@test-01:/# tail /dev/zero\nKilled\nroot@test-01:/# echo $?\n137\nroot@test-01:/# grep oom /sys/fs/cgroup/memory.events\noom 1\noom_kill 1\noom_group_kill 0\nroot@test-01:/#",
+  "root_cause": "the process was killed for exceeding its memory limit (OOM kill)",
+  "keywords": [
+   [
+    "memory",
+    "oom",
+    "out of memory"
+   ]
+  ]
+ },
+ {
+  "id": "missing-env",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl get pods -o wide\nNAME                          READY   STATUS             RESTARTS       AGE     IP           NODE               NOMINATED NODE   READINESS GATES\napi-7bb76f9894-9q4tk          0/1     CrashLoopBackOff   5 (119s ago)   5m52s   10.244.1.7   do-m14l06-worker   <none>           <none>\napi-7c6cc66b89-jx4b8          0/1     Running            5 (2m ago)     4m38s   10.244.1.8   do-m14l06-worker   <none>           <none>\napi-7c6cc66b89-x9z2h          0/1     Error              5 (2m4s ago)   4m35s   10.244.1.9   do-m14l06-worker   <none>           <none>\nprobe                         1/1     Running            0              14m     10.244.1.2   do-m14l06-worker   <none>           <none>\nstorefront-6d64f775c8-k8wpm   1/1     Running            0              14m     10.244.1.6   do-m14l06-worker   <none>           <none>\nstorefront-6d64f775c8-w9xxb   1/1     Running            0              14m     10.244.1.4   do-m14l06-worker   <none>           <none>\nasha@lab:~/allcsvideos$ \n\nasha@lab:~/allcsvideos$ kubectl logs api-7c6cc66b89-x9z2h --previous\nFATAL: DATABASE_URL is not set. Refusing to start.\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "DATABASE_URL is not set, so the api crash-loops",
+  "keywords": [
+   [
+    "database_url"
+   ]
+  ]
+ },
+ {
+  "id": "bad-image-tag",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl get pods -l app=storefront\nNAME                          READY   STATUS         RESTARTS   AGE\nstorefront-6d64f775c8-k8wpm   1/1     Running        0          20m\nstorefront-6d64f775c8-w9xxb   1/1     Running        0          20m\nstorefront-cb9964d7d-dh6lg    0/1     ErrImagePull   0          45s\nasha@lab:~/allcsvideos$ kubectl exec probe -- curl -s -o /dev/null -w '%{http_code}\\n' storefront/\n200\nasha@lab:~/allcsvideos$ \n\nasha@lab:~/allcsvideos$ kubectl events --for pod/storefront-cb9964d7d-dh6lg\nLAST SEEN           TYPE      REASON      OBJECT                           MESSAGE\n56s                 Normal    Scheduled   Pod/storefront-cb9964d7d-dh6lg   Successfully assigned allcsvideos/storefront-cb9964d7d-dh6lg to do-m14l06-worker\n23s (x2 over 48s)   Normal    BackOff     Pod/storefront-cb9964d7d-dh6lg   Back-off pulling image \"nginx:1.29.88\"\n23s (x2 over 48s)   Warning   Failed      Pod/storefront-cb9964d7d-dh6lg   Error: ImagePullBackOff\n7s (x3 over 51s)    Normal    Pulling     Pod/storefront-cb9964d7d-dh6lg   Pulling image \"nginx:1.29.88\"\n5s (x3 over 49s)    Warning   Failed      Pod/storefront-cb9964d7d-dh6lg   Failed to pull image \"nginx:1.29.88\": rpc error: code = NotFound desc = failed to pull and unpack image \"docker.io/library/nginx:1.29.88\": failed to resolve reference \"docker.io/library/nginx:1.29.88\": docker.io/library/nginx:1.29.88: not found\n5s (x3 over 49s)    Warning   Failed      Pod/storefront-cb9964d7d-dh6lg   Error: ErrImagePull\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "the image tag nginx:1.29.88 does not exist",
+  "keywords": [
+   [
+    "image",
+    "tag"
+   ],
+   [
+    "not found",
+    "doesn't exist",
+    "does not exist",
+    "wrong",
+    "invalid",
+    "typo",
+    "pull"
+   ]
+  ]
+ },
+ {
+  "id": "missing-secret",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl get pod mailer\nNAME     READY   STATUS                       RESTARTS   AGE\nmailer   0/1     CreateContainerConfigError   0          116s\nasha@lab:~/allcsvideos$ kubectl describe pod mailer | grep -A2 -E '^ +State:'\n    State:          Waiting\n      Reason:       CreateContainerConfigError\n    Ready:          False\nasha@lab:~/allcsvideos$ kubectl events --for pod/mailer | tail -2\n7s (x4 over 35s)         Normal    Pulled      Pod/mailer   Container image \"do-m14l06/api:2.5.0\" already present on machine and can be accessed by the pod\n7s (x4 over 35s)         Warning   Failed      Pod/mailer   Error: secret \"mailer-smtp\" not found\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "the Secret mailer-smtp does not exist",
+  "keywords": [
+   [
+    "secret"
+   ]
+  ]
+ },
+ {
+  "id": "insufficient-cpu",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl events --for pod/report\nLAST SEEN   TYPE      REASON             OBJECT       MESSAGE\n46m         Warning   FailedScheduling   Pod/report   0/2 nodes are available: 1 Insufficient cpu, 1 node(s) had untolerated taint(s). preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.\n33m         Warning   FailedScheduling   Pod/report   0/2 nodes are available: 1 Insufficient cpu, 1 node(s) had untolerated taint(s). preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.\n4m7s        Warning   FailedScheduling   Pod/report   0/2 nodes are available: 1 Insufficient cpu, 1 node(s) had untolerated taint(s). preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "no node has enough free CPU (and the other node is tainted)",
+  "keywords": [
+   [
+    "cpu",
+    "resources"
+   ]
+  ]
+ },
+ {
+  "id": "probe-wrong-port",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl get pods -l app=catalog\nNAME                       READY   STATUS    RESTARTS   AGE\ncatalog-584b948d87-85wnk   0/1     Running   0          2m35s\ncatalog-584b948d87-97xld   0/1     Running   0          2m35s\nasha@lab:~/allcsvideos$ kubectl get endpointslices -l kubernetes.io/service-name=catalog\nNAME            ADDRESSTYPE   PORTS   ENDPOINTS                 AGE\ncatalog-b4d6l   IPv4          8080    10.244.1.23,10.244.1.21   2m37s\nasha@lab:~/allcsvideos$ kubectl exec probe -- curl -s -m 5 catalog/courses; echo \"exit $?\"\ncommand terminated with exit code 7\nexit 7\nasha@lab:~/allcsvideos$ \n\nasha@lab:~/allcsvideos$ kubectl events --for pod/catalog-584b948d87-85wnk | tail -2\n36s                Normal    Started     Pod/catalog-584b948d87-85wnk   Container started\n5s (x8 over 36s)   Warning   Unhealthy   Pod/catalog-584b948d87-85wnk   Readiness probe failed: Get \"http://10.244.1.23:8081/healthz\": dial tcp 10.244.1.23:8081: connect: connection refused\nasha@lab:~/allcsvideos$ kubectl get endpointslices -l kubernetes.io/service-name=catalog -o yaml | grep -A3 conditions\n    conditions:\n      ready: false\n      serving: false\n      terminating: false\n--\n    conditions:\n      ready: false\n      serving: false\n      terminating: false\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "the readiness probe checks port 8081, so no pod is ready",
+  "keywords": [
+   [
+    "readiness",
+    "probe"
+   ],
+   [
+    "8081",
+    "port"
+   ]
+  ]
+ },
+ {
+  "id": "dns-namespace",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl -n ops exec dns-check -- curl -s -m 5 api/courses; echo \"exit $?\"\ncommand terminated with exit code 6\nexit 6\nasha@lab:~/allcsvideos$ kubectl -n ops exec dns-check -- grep search /etc/resolv.conf\nsearch ops.svc.cluster.local svc.cluster.local cluster.local\nasha@lab:~/allcsvideos$ kubectl -n ops exec dns-check -- nslookup api\n;; Got recursion not available from 10.96.0.10\n;; Got recursion not available from 10.96.0.10\n;; Got recursion not available from 10.96.0.10\nServer:\t\t10.96.0.10\nAddress:\t10.96.0.10#53\n\n** server can't find api: NXDOMAIN\n\ncommand terminated with exit code 1",
+  "root_cause": "the short name api resolves only in its own namespace (pod is in ops)",
+  "keywords": [
+   [
+    "namespace",
+    "api.allcsvideos",
+    "search domain",
+    "fully qualified",
+    "fqdn"
+   ]
+  ]
+ },
+ {
+  "id": "netpol-deny",
+  "from": "M14-L06",
+  "evidence": "asha@lab:~/allcsvideos$ kubectl exec probe -- curl -s -m 5 -o /dev/null -w '%{http_code}\\n' storefront/api/courses; echo \"exit $?\"\n000\ncommand terminated with exit code 28\nexit 28\nasha@lab:~/allcsvideos$ kubectl get pods -l app=api\nNAME                   READY   STATUS    RESTARTS   AGE\napi-5bcb8bc679-jwhnk   1/1     Running   0          115m\napi-5bcb8bc679-kdkgz   1/1     Running   0          114m\nasha@lab:~/allcsvideos$ kubectl get endpointslices -l kubernetes.io/service-name=api\nNAME        ADDRESSTYPE   PORTS   ENDPOINTS                 AGE\napi-lwzj5   IPv4          8080    10.244.1.10,10.244.1.11   132m\nasha@lab:~/allcsvideos$ kubectl get networkpolicy\nNAME          POD-SELECTOR   AGE\napi-ingress   app=api        10s\nasha@lab:~/allcsvideos$ ",
+  "root_cause": "the NetworkPolicy api-ingress blocks traffic to the api pods",
+  "keywords": [
+   [
+    "networkpolicy",
+    "network policy",
+    "api-ingress"
+   ]
+  ]
+ }
+]

@@ -1,0 +1,19 @@
+# hostPath: a folder on whichever node runs the pod. Staged demo, pinned to one node.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: scratch-a
+spec:
+  nodeName: lab-worker
+  containers:
+  - name: app
+    image: busybox:1.37.0
+    command: ["sh", "-c", "date > /scratch/note.txt; sleep 3600"]
+    volumeMounts:
+    - name: scratch
+      mountPath: /scratch
+  volumes:
+  - name: scratch
+    hostPath:
+      path: /var/allcsvideos-scratch
+      type: DirectoryOrCreate

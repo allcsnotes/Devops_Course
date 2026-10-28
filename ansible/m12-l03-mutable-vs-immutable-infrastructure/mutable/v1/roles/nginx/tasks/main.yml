@@ -1,0 +1,49 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Render nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+    validate: nginx -t -c %s
+  notify: nginx config changed
+
+- name: Create the web root
+  ansible.builtin.file:
+    path: /var/www/allcsvideos
+    state: directory
+    mode: "0755"
+
+- name: Render the home page
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/allcsvideos/index.html
+    mode: "0644"
+
+- name: Keep nginx running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+  when: not image_build       # an image starts nothing
+
+- name: Apply config changes now, not at the end of the play
+  ansible.builtin.meta: flush_handlers
+
+- name: Check the health endpoint
+  ansible.builtin.uri:
+    url: http://localhost/health
+    return_content: true
+  register: health
+  when: not image_build and not ansible_check_mode
+
+- name: Show what nginx answered
+  ansible.builtin.debug:
+    msg: "{{ health.json }}"
+  when: not image_build and not ansible_check_mode

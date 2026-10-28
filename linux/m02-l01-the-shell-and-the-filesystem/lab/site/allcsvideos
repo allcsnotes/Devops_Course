@@ -1,0 +1,10 @@
+server {
+    listen 80;
+    server_name allcsvideos.com www.allcsvideos.com;
+    root /var/www/allcsvideos;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

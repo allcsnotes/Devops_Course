@@ -1,0 +1,18 @@
+# The certificate for the storefront and the API, signed by lab-ca
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: allcsvideos-tls
+spec:
+  secretName: allcsvideos-tls     # cert-manager writes the key pair here
+  dnsNames:
+  - allcsvideos.test
+  - api.allcsvideos.test
+  duration: 2160h                 # 90 days
+  renewBefore: 720h               # renew 30 days before expiry
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: lab-ca
+    kind: ClusterIssuer

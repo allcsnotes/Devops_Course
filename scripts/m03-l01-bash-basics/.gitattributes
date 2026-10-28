@@ -1,0 +1,4 @@
+# Keep Linux (LF) line endings on every checkout, also on Windows: the scripts run inside a Linux container.
+* text=auto eol=lf
+# report.sh has Windows (CRLF) line endings on purpose: it is the broken file in the "line endings" pitfall.
+scripts/report.sh -text

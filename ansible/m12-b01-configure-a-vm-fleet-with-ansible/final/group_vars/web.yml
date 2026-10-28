@@ -1,0 +1,16 @@
+---
+# the app servers
+# the Course Copilot release this fleet runs: change it here, commit, run rolling.yml
+copilot_version: "1.9.0"
+
+# nginx on each web server forwards port 80 to the app on 127.0.0.1:8000
+nginx_app_port: 8000
+
+# port 80 only from the load balancer(s)
+ufw_allow:
+  - port: 80
+    from: "{{ groups['lb'] | map('extract', hostvars, 'ansible_host') | list }}"
+
+hc_services: [nginx, copilot, ssh]
+hc_endpoints:
+  - copilot=http://localhost/health

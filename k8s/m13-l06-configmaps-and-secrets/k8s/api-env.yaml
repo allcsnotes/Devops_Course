@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-env
+  namespace: allcsvideos
+data:
+  APP_ENV: staging
+  DB_HOST: db.staging.allcsvideos.internal
+  DB_USER: api
+  API_BASE_URL: https://staging.allcsvideos.com

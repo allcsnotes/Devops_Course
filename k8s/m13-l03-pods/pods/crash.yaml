@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crash
+  labels:
+    course: devops
+spec:
+  containers:
+  - name: worker
+    image: busybox:1.37.0
+    command: ["sh", "-c", "echo worker starting; sleep 2; echo cannot reach the queue; exit 1"]

@@ -1,0 +1,146 @@
+# M16-B01: allcsvideos with full observability. api + Course Copilot + catalog db, all three signals,
+# one Grafana, alerts that page. Lab only: published on 127.0.0.1, fake passwords.
+name: m16-full
+x-otel: &otel                           # every service: OpenTelemetry SDK -> Collector, traces only
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_METRICS_EXPORTER: none           # metrics: Prometheus scrapes /metrics
+  OTEL_LOGS_EXPORTER: none              # logs: stdout, collected by Alloy
+  OTEL_PYTHON_EXCLUDED_URLS: "healthz,health,metrics"
+  PROMETHEUS_DISABLE_CREATED_SERIES: "True"
+services:
+  # ---------------- the app ----------------
+  api:
+    build: ./api
+    image: m16-full-api:1.0
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: api
+      APP_VERSION: "1.0"
+      DATABASE_URL: postgresql://app:demo-password-123@db:5432/catalog   # fake lab password
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      db: {condition: service_healthy}
+    cpus: 0.5
+    mem_limit: 160m
+    labels: [course=devops]
+  copilot:
+    build: ./copilot
+    image: m16-full-copilot:1.0
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: copilot
+      APP_VERSION: ${COPILOT_VERSION:-1.0}
+      SEARCH_TRANSCRIPTS: ${COPILOT_TRANSCRIPTS:-0}    # version 1.1 turns this on
+      DATABASE_URL: postgresql://app:demo-password-123@db:5432/catalog   # fake lab password
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    cpus: 0.5
+    mem_limit: 160m
+    labels: [course=devops]
+  db:
+    image: postgres:18.6-alpine3.24
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_PASSWORD: demo-password-123   # fake lab password
+    volumes: ["./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro", "pgdata:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "catalog"]
+      interval: 2s
+      retries: 120
+    cpus: 1.0
+    mem_limit: 384m
+    labels: [course=devops]
+  load:
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/load/traffic.py"]
+    environment: {RATE_COURSES: "6", RATE_ASK: "2"}
+    volumes: ["./load:/load:ro"]
+    profiles: [load]
+    mem_limit: 96m
+    labels: [course=devops]
+  # ---------------- collection ----------------
+  alloy:                                # logs from every app container -> Loki; Postgres metrics -> Prometheus
+    image: grafana/alloy:v1.21.0
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data", "--server.http.listen-addr=0.0.0.0:12345"]
+    volumes: ["./alloy/config.alloy:/etc/alloy/config.alloy:ro", "/var/run/docker.sock:/var/run/docker.sock:ro"]
+    depends_on: [loki, prometheus, api, copilot]   # start after the apps it tails
+    cpus: 0.5
+    mem_limit: 256m
+    labels: [course=devops]
+  otelcol:                              # traces from every service -> Tempo
+    image: otel/opentelemetry-collector-contrib:0.163.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["./otelcol:/etc/otelcol:ro"]
+    cpus: 0.5
+    mem_limit: 192m
+    labels: [course=devops]
+  node-exporter:                        # the host: CPU, memory, disk (here, Docker Desktop's Linux VM)
+    image: prom/node-exporter:v1.12.1
+    command: ["--path.rootfs=/host"]
+    volumes: ["/:/host:ro"]
+    pid: host
+    mem_limit: 64m
+    labels: [course=devops]
+  # ---------------- storage ----------------
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--enable-feature=exemplar-storage",
+              "--web.enable-remote-write-receiver", "--web.enable-lifecycle"]
+    volumes: ["./prometheus:/etc/prometheus:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+    cpus: 0.5
+    mem_limit: 256m
+    labels: [course=devops]
+  loki:
+    image: grafana/loki:3.7.9
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes: ["./loki:/etc/loki:ro", "loki-data:/loki"]
+    ports: ["127.0.0.1:3100:3100"]
+    cpus: 0.5
+    mem_limit: 320m
+    labels: [course=devops]
+  tempo:
+    image: grafana/tempo:3.1.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes: ["./tempo:/etc/tempo:ro", "tempo-data:/var/tempo"]
+    ports: ["127.0.0.1:3200:3200"]
+    cpus: 0.5
+    mem_limit: 320m
+    labels: [course=devops]
+  # ---------------- one pane, and the pager ----------------
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"        # lab only: no login screen
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes: ["./grafana/provisioning:/etc/grafana/provisioning:ro", "./grafana/dashboards:/var/lib/grafana/dashboards:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+    cpus: 1.0
+    mem_limit: 768m
+    labels: [course=devops]
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes: ["./alertmanager:/etc/alertmanager:ro"]
+    ports: ["127.0.0.1:9093:9093"]
+    mem_limit: 96m
+    labels: [course=devops]
+  receiver:                             # lab stand-in for the pager service: logs every notification
+    image: python:3.13.16-slim
+    command: ["python", "-u", "/r/receiver.py"]
+    volumes: ["./receiver:/r:ro", "./runs:/data"]
+    mem_limit: 64m
+    labels: [course=devops]
+volumes:
+  pgdata: {labels: [course=devops]}
+  loki-data: {labels: [course=devops]}
+  tempo-data: {labels: [course=devops]}
+networks:
+  default:
+    labels: [course=devops]

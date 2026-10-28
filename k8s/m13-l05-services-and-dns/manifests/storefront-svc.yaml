@@ -1,0 +1,15 @@
+# storefront stand-in: calls the API every 2 seconds and logs the answer
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storefront
+spec:
+  containers:
+  - name: storefront
+    image: nicolaka/netshoot:v0.16
+    env:
+    - name: API_URL
+      value: "http://api"   # the Service name (port 80)
+    command: ["sh", "-c"]
+    args:
+    - while true; do echo "$(date +%T) $(curl -sS -m 2 $API_URL/ 2>&1)"; sleep 2; done

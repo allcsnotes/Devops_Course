@@ -1,0 +1,27 @@
+# Composite action, first version (M08-L02): counts only files with a #! line, so it misses hc/lib/checks.sh.
+# Copy to .github/actions/hc-lint/action.yml for the "4 scripts" run, then replace with the fixed version.
+name: hc-lint
+description: Syntax-check the shell and Python files of the hc toolkit
+inputs:
+  path:
+    description: the folder to check
+    default: hc
+runs:
+  using: composite
+  steps:
+    - name: bash -n on every shell script
+      shell: bash
+      run: |
+        n=0
+        for f in $(find "${{ inputs.path }}" -type f); do
+          if head -1 "$f" | grep -qE '^#!.*(bash|sh)'; then
+            bash -n "$f"
+            n=$((n + 1))
+          fi
+        done
+        echo "shell ok: $n scripts"
+    - name: Python byte-compile
+      shell: bash
+      run: |
+        python -m py_compile "${{ inputs.path }}"/lib/*.py
+        echo "python ok: $(python --version)"
